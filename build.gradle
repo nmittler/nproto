@@ -1,0 +1,108 @@
+apply plugin: "checkstyle"
+apply plugin: "java"
+apply plugin: "maven"
+apply plugin: "idea"
+apply plugin: "signing"
+apply plugin: "jacoco"
+
+group = "io.nproto"
+version = "0.0.1-SNAPSHOT"
+description = 'New Proto Runtime'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+ext {
+    libraries = [
+            // Test dependencies.
+            junit  : 'junit:junit:4.12',
+            mockito: 'org.mockito:mockito-core:1.9.5'
+    ]
+}
+
+dependencies {
+    testCompile libraries.junit,
+            libraries.mockito
+}
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
+
+[compileJava, compileTestJava].each() {
+    it.options.compilerArgs += ["-Xlint:unchecked", "-Xlint:deprecation", "-Xlint:-options",
+                                "-Xlint:rawtypes"]
+    it.options.encoding = "UTF-8"
+}
+
+jar.manifest {
+    attributes('Implementation-Title': name,
+            'Implementation-Version': version,
+            'Built-By': System.getProperty('user.name'),
+            'Built-JDK': System.getProperty('java.version'),
+            'Source-Compatibility': sourceCompatibility,
+            'Target-Compatibility': targetCompatibility)
+}
+
+javadoc.options {
+    encoding = 'UTF-8'
+    links 'https://docs.oracle.com/javase/8/docs/api/'
+}
+
+signing {
+    required false
+    sign configurations.archives
+}
+
+// Disable JavaDoc doclint on Java 8. It's annoying.
+if (JavaVersion.current().isJava8Compatible()) {
+    allprojects {
+        tasks.withType(Javadoc) {
+            options.addStringOption('Xdoclint:none', '-quiet')
+        }
+    }
+}
+
+checkstyle {
+    configFile = file("$rootDir/checkstyle.xml")
+    toolVersion = "6.5"
+    ignoreFailures = false
+    if (rootProject.hasProperty("checkstyle.ignoreFailures")) {
+        ignoreFailures = rootProject.properties["checkstyle.ignoreFailures"].toBoolean()
+    }
+    configProperties["rootDir"] = rootDir
+}
+
+checkstyleMain {
+    source = fileTree(dir: "src/main", include: "**/*.java")
+}
+
+checkstyleTest {
+    source = fileTree(dir: "src/test", include: "**/*.java")
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+// At a test failure, log the stack trace to the console so that we don't
+// have to open the HTML in a browser.
+test {
+    testLogging {
+        exceptionFormat = 'full'
+        showExceptions true
+        showCauses true
+        showStackTraces true
+    }
+}
