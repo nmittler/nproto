@@ -1,4 +1,4 @@
-package io.nproto.runtime;
+package io.nproto;
 
 import io.nproto.ByteString;
 
