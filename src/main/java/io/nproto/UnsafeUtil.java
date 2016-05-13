@@ -18,7 +18,7 @@ public final class UnsafeUtil {
   private static final boolean HAS_UNSAFE_BYTEBUFFER_OPERATIONS =
           supportsUnsafeByteBufferOperations();
   private static final boolean HAS_UNSAFE_ARRAY_OPERATIONS = supportsUnsafeArrayOperations();
-  private static final long ARRAY_BASE_OFFSET = byteArrayBaseOffset();
+  private static final long BYTE_ARRAY_BASE_OFFSET = arrayBaseOffset(byte[].class);
   private static final long BUFFER_ADDRESS_OFFSET = fieldOffset(field(Buffer.class, "address"));
 
   private UnsafeUtil() {
@@ -32,8 +32,12 @@ public final class UnsafeUtil {
     return HAS_UNSAFE_BYTEBUFFER_OPERATIONS;
   }
 
-  public static long getArrayBaseOffset() {
-    return ARRAY_BASE_OFFSET;
+  public static long getByteArrayBaseOffset() {
+    return BYTE_ARRAY_BASE_OFFSET;
+  }
+
+  public static long arrayBaseOffset(Class<?> arrayClass) {
+    return HAS_UNSAFE_ARRAY_OPERATIONS ? UNSAFE.arrayBaseOffset(arrayClass) : -1;
   }
 
   /**
@@ -174,13 +178,6 @@ public final class UnsafeUtil {
       }
     }
     return supported;
-  }
-
-  /**
-   * Get the base offset for byte arrays, or {@code -1} if {@code sun.misc.Unsafe} is not available.
-   */
-  private static int byteArrayBaseOffset() {
-    return HAS_UNSAFE_ARRAY_OPERATIONS ? UNSAFE.arrayBaseOffset(byte[].class) : -1;
   }
 
   /**

@@ -1,4 +1,4 @@
-package io.nproto.schema.asm;
+package io.nproto.schema.gen;
 
 import io.nproto.ByteString;
 import io.nproto.PojoMessage;

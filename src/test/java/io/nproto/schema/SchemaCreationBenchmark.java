@@ -1,8 +1,8 @@
 package io.nproto.schema;
 
 import io.nproto.PojoMessage;
-import io.nproto.schema.asm.AsmSchemaFactory;
-import io.nproto.schema.reflect.ReflectiveSchemaFactory;
+import io.nproto.schema.gen.AsmSchemaFactory;
+import io.nproto.schema.reflect.UnsafeReflectiveSchemaFactory;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
@@ -15,7 +15,7 @@ import org.openjdk.jmh.annotations.State;
 public class SchemaCreationBenchmark {
   public enum SchemaType {
     REFLECTIVE {
-      private final ReflectiveSchemaFactory factory = new ReflectiveSchemaFactory();
+      private final UnsafeReflectiveSchemaFactory factory = new UnsafeReflectiveSchemaFactory();
 
       @Override
       Schema<?> createSchema() {

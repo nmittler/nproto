@@ -3,8 +3,8 @@ package io.nproto.schema;
 import io.nproto.ByteString;
 import io.nproto.PojoMessage;
 import io.nproto.Writer;
-import io.nproto.schema.asm.AsmSchemaFactory;
-import io.nproto.schema.reflect.ReflectiveSchemaFactory;
+import io.nproto.schema.gen.AsmSchemaFactory;
+import io.nproto.schema.reflect.UnsafeReflectiveSchemaFactory;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
@@ -21,7 +21,7 @@ import java.util.List;
 @Fork(1)
 public class WriteToBenchmark {
   public enum SchemaType {
-    REFLECTIVE(new ReflectiveSchemaFactory()),
+    REFLECTIVE(new UnsafeReflectiveSchemaFactory()),
     ASM(new AsmSchemaFactory());
 
     SchemaType(SchemaFactory factory) {

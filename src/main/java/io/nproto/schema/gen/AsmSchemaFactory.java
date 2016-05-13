@@ -1,4 +1,4 @@
-package io.nproto.schema.asm;
+package io.nproto.schema.gen;
 
 import static io.nproto.UnsafeUtil.fieldOffset;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;

@@ -11,15 +11,6 @@
     <name>New Proto</name>
 
     <build>
-        <extensions>
-            <!-- Generate os.detected.classifier property -->
-            <extension>
-                <groupId>kr.motd.maven</groupId>
-                <artifactId>os-maven-plugin</artifactId>
-                <version>1.4.0.Final</version>
-            </extension>
-        </extensions>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -39,13 +30,6 @@
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm-all</artifactId>
             <version>5.1</version>
-        </dependency>
-        <dependency>
-            <groupId>io.nproto</groupId>
-            <artifactId>native-schema</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <classifier>${os.detected.classifier}</classifier>
-            <optional>true</optional>
         </dependency>
 
         <dependency>

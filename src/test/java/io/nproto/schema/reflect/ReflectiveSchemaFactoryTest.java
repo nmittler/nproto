@@ -14,7 +14,7 @@ public class ReflectiveSchemaFactoryTest {
 
   @Test
   public void test() {
-    ReflectiveSchemaFactory f = new ReflectiveSchemaFactory();
+    UnsafeReflectiveSchemaFactory f = new UnsafeReflectiveSchemaFactory();
     Schema<PojoMessage> schema = f.createSchema(PojoMessage.class);
 
     PojoMessage msg = new PojoMessage();
