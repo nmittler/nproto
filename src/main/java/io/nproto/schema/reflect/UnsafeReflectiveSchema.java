@@ -55,151 +55,152 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
   public void writeTo(T message, Writer writer) {
     //for(int i = 0; i < data.length; ++i) {
     for(long pos = dataOffset; pos < dataLimit; pos += FIELD_LENGTH) {
+      int fieldNumber = getFieldNumber(getLong(pos));
       // Switching on the field type ID to avoid the lookup of FieldType.
       switch (getFieldTypeId(getLong(pos))) {
         case 1: //DOUBLE:
-          writeDouble(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeDouble(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 2: //FLOAT:
-          writeFloat(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeFloat(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 3: //INT64:
-          writeInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeInt64(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 4: //UINT64:
-          writeUInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeUInt64(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 5: //INT32:
-          writeInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeInt32(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 6: //FIXED64:
-          writeFixed64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeFixed64(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 7: //FIXED32:
-          writeFixed32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeFixed32(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 8: //BOOL:
-          writeBool(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeBool(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 9: //STRING:
-          writeString(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeString(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 10: //MESSAGE:
-          writeMessage(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeMessage(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 11: //BYTES:
-          writeBytes(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeBytes(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 12: //UINT32:
-          writeUInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeUInt32(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 13: //ENUM:
-          writeEnum(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeEnum(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 14: //SFIXED32:
-          writeSFixed32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeSFixed32(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 15: //SFIXED64:
-          writeSFixed64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeSFixed64(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 16: //SINT32:
-          writeSInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeSInt32(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 17: //SINT64:
-          writeSInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeSInt64(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 18: //DOUBLE_LIST:
-          writeDoubleList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeDoubleList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 35: //PACKED_DOUBLE_LIST:
-          writeDoubleList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeDoubleList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 19: //FLOAT_LIST:
-          writeFloatList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeFloatList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 36: //PACKED_FLOAT_LIST:
-          writeFloatList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeFloatList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 20: //INT64_LIST:
-          writeInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeInt64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 37: //PACKED_INT64_LIST:
-          writeInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeInt64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 21: //UINT64_LIST:
-          writeUInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeUInt64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 38: //PACKED_UINT64_LIST:
-          writeUInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeUInt64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 22: //INT32_LIST:
-          writeInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeInt32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 39: //PACKED_INT32_LIST:
-          writeInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeInt32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 23: //FIXED64_LIST:
-          writeFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeFixed64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 40: //PACKED_FIXED64_LIST:
-          writeFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeFixed64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 24: //FIXED32_LIST:
-          writeFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeFixed32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 41: //PACKED_FIXED32_LIST:
-          writeFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeFixed32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 25: //BOOL_LIST:
-          writeBoolList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeBoolList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 42: //PACKED_BOOL_LIST:
-          writeBoolList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeBoolList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 26: //STRING_LIST:
-          writeStringList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeStringList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 27: //MESSAGE_LIST:
-          writeMessageList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeMessageList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 28: //BYTES_LIST:
-          writeBytesList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          writeBytesList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH));
           break;
         case 29: //UINT32_LIST:
-          writeUInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeUInt32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 43: //PACKED_UINT32_LIST:
-          writeUInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeUInt32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 30: //ENUM_LIST:
-          writeEnumList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeEnumList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 44: //PACKED_ENUM_LIST:
-          writeEnumList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeEnumList(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 31: //SFIXED32_LIST:
-          writeSFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeSFixed32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 45: //PACKED_SFIXED32_LIST:
-          writeSFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeSFixed32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 32: //SFIXED64_LIST:
-          writeSFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeSFixed64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 46: //PACKED_SFIXED64_LIST:
-          writeSFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeSFixed64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 33: //SINT32_LIST:
-          writeSInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeSInt32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 47: //PACKED_SINT32_LIST:
-          writeSInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeSInt32List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         case 34: //SINT64_LIST:
-          writeSInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          writeSInt64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), false);
           break;
         case 48: //PACKED_SINT64_LIST:
-          writeSInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          writeSInt64List(message, writer, fieldNumber, getLong(pos + LONG_LENGTH), true);
           break;
         default:
           throw new IllegalArgumentException("Unsupported fieldType: " + getFieldType(getLong(pos)));
