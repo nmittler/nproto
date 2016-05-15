@@ -5,8 +5,13 @@ import io.nproto.WireFormat.FieldType;
 import java.util.List;
 
 public class PojoMessage {
+  public enum MyEnum {
+    VALUE1,
+    VALUE2
+  }
+
   @ProtoField(number = 1, type = FieldType.ENUM)
-  public int enumField;
+  public MyEnum enumField;
 
   @ProtoField(number = 2, type = FieldType.BOOL)
   public boolean boolField;
@@ -51,7 +56,7 @@ public class PojoMessage {
   public Object messageField;
 
   @ProtoField(number = 16, type = FieldType.ENUM, repeated = true, packed = true)
-  public List<Integer> enumListField;
+  public List<MyEnum> enumListField;
 
   @ProtoField(number = 17, type = FieldType.BOOL, repeated = true, packed = true)
   public List<Boolean> boolListField;

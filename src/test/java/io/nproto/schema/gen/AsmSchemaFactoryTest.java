@@ -80,7 +80,7 @@ public class AsmSchemaFactoryTest {
     }
 
     @Override
-    public void writeEnum(int fieldNumber, int value) {
+    public <E extends Enum<E>> void writeEnum(int fieldNumber, E value) {
       System.err.println("NM: writeEnum, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
@@ -175,7 +175,7 @@ public class AsmSchemaFactoryTest {
     }
 
     @Override
-    public void writeEnumList(int fieldNumber, boolean packed, List<Integer> value) {
+    public <E extends Enum<E>> void writeEnumList(int fieldNumber, boolean packed, List<E> value) {
       System.err.println("NM: writeEnumList, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 

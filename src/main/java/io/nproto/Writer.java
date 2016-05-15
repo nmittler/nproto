@@ -2,9 +2,6 @@ package io.nproto;
 
 import java.util.List;
 
-/**
- * Created by nathanmittler on 5/10/16.
- */
 public interface Writer {
   void writeSFixed32(int fieldNumber, int value);
 
@@ -16,7 +13,7 @@ public interface Writer {
 
   void writeDouble(int fieldNumber, double value);
 
-  void writeEnum(int fieldNumber, int value);
+  <E extends Enum<E>> void writeEnum(int fieldNumber, E value);
 
   void writeUInt64(int fieldNumber, long value);
 
@@ -54,7 +51,7 @@ public interface Writer {
 
   void writeDoubleList(int fieldNumber, boolean packed, List<Double> list);
 
-  void writeEnumList(int fieldNumber, boolean packed, List<Integer> list);
+  <E extends Enum<E>> void writeEnumList(int fieldNumber, boolean packed, List<E> list);
 
   void writeBoolList(int fieldNumber, boolean packed, List<Boolean> list);
 

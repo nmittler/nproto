@@ -4,13 +4,20 @@ import static io.nproto.UnsafeUtil.fieldOffset;
 
 import io.nproto.ByteString;
 import io.nproto.FieldType;
+import io.nproto.JavaType;
 import io.nproto.UnsafeUtil;
 import io.nproto.Writer;
+import io.nproto.schema.Field;
 import io.nproto.schema.Schema;
 import io.nproto.schema.SchemaUtil;
 import io.nproto.schema.SchemaUtil.FieldInfo;
 
+import sun.plugin.dom.exception.InvalidStateException;
+
+import java.lang.ref.WeakReference;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 final class UnsafeReflectiveSchema<T> implements Schema<T> {
   private static final int ENTRIES_PER_FIELD = 2;
@@ -20,6 +27,10 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
   private final long[] data;
   private final long dataOffset;
   private final long dataLimit;
+
+  // Array that holds lazy entries for fields.
+  private WeakReference<Field[]> fields;
+
   //private final int[] fieldNumbers;
   //private final FieldType[] fieldTypes;
   //private final byte[] fieldTypes;
@@ -29,15 +40,15 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
   }
 
   private UnsafeReflectiveSchema(Class<T> messageType) {
-    List<FieldInfo> fields = SchemaUtil.getAllFieldInfo(messageType);
-    final int numFields = fields.size();
+    List<FieldInfo> fieldInfos = SchemaUtil.getAllFieldInfo(messageType);
+    final int numFields = fieldInfos.size();
     //data = new long[numFields];
     //fieldNumbers = new int[numFields];
     //fieldTypes = new byte[numFields];
     data = new long[numFields * ENTRIES_PER_FIELD];
     int lastFieldNumber = Integer.MAX_VALUE;
     for (int i = 0, dataPos = 0; i < numFields; ++i) {
-      FieldInfo f = fields.get(i);
+      FieldInfo f = fieldInfos.get(i);
       if (f.fieldNumber == lastFieldNumber) {
         throw new RuntimeException("Duplicate field number: " + f.fieldNumber);
       }
@@ -52,306 +63,165 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
   }
 
   @Override
+  public Iterator<Field> iterator() {
+    Field[] fields = getOrCreateFields();
+    return new FieldIterator(fields);
+  }
+
+  @Override
   public void writeTo(T message, Writer writer) {
     //for(int i = 0; i < data.length; ++i) {
     for(long pos = dataOffset; pos < dataLimit; pos += FIELD_LENGTH) {
       // Switching on the field type ID to avoid the lookup of FieldType.
+      final int fieldNumber = getFieldNumber(getLong(pos));
       switch (getFieldTypeId(getLong(pos))) {
         case 1: //DOUBLE:
-          writeDouble(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteDouble(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 2: //FLOAT:
-          writeFloat(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteFloat(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 3: //INT64:
-          writeInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteInt64(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 4: //UINT64:
-          writeUInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteUInt64(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 5: //INT32:
-          writeInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteInt32(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 6: //FIXED64:
-          writeFixed64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteFixed64(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 7: //FIXED32:
-          writeFixed32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteFixed32(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 8: //BOOL:
-          writeBool(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteBool(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 9: //STRING:
-          writeString(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteString(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 10: //MESSAGE:
-          writeMessage(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteMessage(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 11: //BYTES:
-          writeBytes(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteBytes(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 12: //UINT32:
-          writeUInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteUInt32(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 13: //ENUM:
-          writeEnum(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteEnum(fieldNumber, message, getLong(pos + LONG_LENGTH), writer, Enum.class);
           break;
         case 14: //SFIXED32:
-          writeSFixed32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteSFixed32(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 15: //SFIXED64:
-          writeSFixed64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteSFixed64(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 16: //SINT32:
-          writeSInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteSInt32(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 17: //SINT64:
-          writeSInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteSInt64(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 18: //DOUBLE_LIST:
-          writeDoubleList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteDoubleList(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 35: //PACKED_DOUBLE_LIST:
-          writeDoubleList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteDoubleList(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 19: //FLOAT_LIST:
-          writeFloatList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteFloatList(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 36: //PACKED_FLOAT_LIST:
-          writeFloatList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteFloatList(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 20: //INT64_LIST:
-          writeInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 37: //PACKED_INT64_LIST:
-          writeInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 21: //UINT64_LIST:
-          writeUInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteUInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 38: //PACKED_UINT64_LIST:
-          writeUInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteUInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 22: //INT32_LIST:
-          writeInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 39: //PACKED_INT32_LIST:
-          writeInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 23: //FIXED64_LIST:
-          writeFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 40: //PACKED_FIXED64_LIST:
-          writeFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 24: //FIXED32_LIST:
-          writeFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 41: //PACKED_FIXED32_LIST:
-          writeFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 25: //BOOL_LIST:
-          writeBoolList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteBoolList(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 42: //PACKED_BOOL_LIST:
-          writeBoolList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteBoolList(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 26: //STRING_LIST:
-          writeStringList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteStringList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 27: //MESSAGE_LIST:
-          writeMessageList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteMessageList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 28: //BYTES_LIST:
-          writeBytesList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
+          SchemaUtil.unsafeWriteBytesList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 29: //UINT32_LIST:
-          writeUInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteUInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 43: //PACKED_UINT32_LIST:
-          writeUInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteUInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 30: //ENUM_LIST:
-          writeEnumList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteEnumList(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer, Enum.class);
           break;
         case 44: //PACKED_ENUM_LIST:
-          writeEnumList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteEnumList(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer, Enum.class);
           break;
         case 31: //SFIXED32_LIST:
-          writeSFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteSFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 45: //PACKED_SFIXED32_LIST:
-          writeSFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteSFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 32: //SFIXED64_LIST:
-          writeSFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteSFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 46: //PACKED_SFIXED64_LIST:
-          writeSFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteSFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 33: //SINT32_LIST:
-          writeSInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteSInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 47: //PACKED_SINT32_LIST:
-          writeSInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteSInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         case 34: //SINT64_LIST:
-          writeSInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
+          SchemaUtil.unsafeWriteSInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
           break;
         case 48: //PACKED_SINT64_LIST:
-          writeSInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
+          SchemaUtil.unsafeWriteSInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
           break;
         default:
           throw new IllegalArgumentException("Unsupported fieldType: " + getFieldType(getLong(pos)));
       }
-      /*switch (getFieldType(getLong(pos))) {
-        case DOUBLE:
-          writeDouble(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case FLOAT:
-          writeFloat(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case INT64:
-          writeInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case UINT64:
-          writeUInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case INT32:
-          writeInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case FIXED64:
-          writeFixed64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case FIXED32:
-          writeFixed32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case BOOL:
-          writeBool(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case STRING:
-          writeString(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case MESSAGE:
-          writeMessage(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case BYTES:
-          writeBytes(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case UINT32:
-          writeUInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case ENUM:
-          writeEnum(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case SFIXED32:
-          writeSFixed32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case SFIXED64:
-          writeSFixed64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case SINT32:
-          writeSInt32(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case SINT64:
-          writeSInt64(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case DOUBLE_LIST:
-          writeDoubleList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_DOUBLE_LIST:
-          writeDoubleList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case FLOAT_LIST:
-          writeFloatList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_FLOAT_LIST:
-          writeFloatList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case INT64_LIST:
-          writeInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_INT64_LIST:
-          writeInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case UINT64_LIST:
-          writeUInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_UINT64_LIST:
-          writeUInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case INT32_LIST:
-          writeInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_INT32_LIST:
-          writeInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case FIXED64_LIST:
-          writeFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_FIXED64_LIST:
-          writeFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case FIXED32_LIST:
-          writeFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_FIXED32_LIST:
-          writeFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case BOOL_LIST:
-          writeBoolList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_BOOL_LIST:
-          writeBoolList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case STRING_LIST:
-          writeStringList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case MESSAGE_LIST:
-          writeMessageList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case BYTES_LIST:
-          writeBytesList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH));
-          break;
-        case UINT32_LIST:
-          writeUInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_UINT32_LIST:
-          writeUInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case ENUM_LIST:
-          writeEnumList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_ENUM_LIST:
-          writeEnumList(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case SFIXED32_LIST:
-          writeSFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_SFIXED32_LIST:
-          writeSFixed32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case SFIXED64_LIST:
-          writeSFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_SFIXED64_LIST:
-          writeSFixed64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case SINT32_LIST:
-          writeSInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_SINT32_LIST:
-          writeSInt32List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        case SINT64_LIST:
-          writeSInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), false);
-          break;
-        case PACKED_SINT64_LIST:
-          writeSInt64List(message, writer, getFieldNumber(getLong(pos)), getLong(pos + LONG_LENGTH), true);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported fieldType: " + getFieldType(getLong(pos)));
-      }*/
     }
   }
 
@@ -359,260 +229,17 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     return UnsafeUtil.getLong(data, pos);
   }
 
-  private static void writeDouble(Object message, Writer writer, int fieldNumber, long offset) {
-    double value = UnsafeUtil.getDouble(message, offset);
-    if (Double.compare(value, 0.0) != 0) {
-      writer.writeDouble(fieldNumber, value);
+  private Field[] getOrCreateFields() {
+    Field[] temp = fields != null ? fields.get() : null;
+    if (temp == null) {
+      int numFields = data.length / ENTRIES_PER_FIELD;
+      temp = new Field[numFields];
+      for(int i = 0; i < numFields; ++i) {
+        temp[i] = new FieldImpl(data, i * ENTRIES_PER_FIELD);
+      }
+      fields = new WeakReference<Field[]>(temp);
     }
-  }
-
-  private static void writeFloat(Object message, Writer writer, int fieldNumber, long offset) {
-    float value = UnsafeUtil.getFloat(message, offset);
-    if (Float.compare(value, 0.0f) != 0) {
-      writer.writeFloat(fieldNumber, value);
-    }
-  }
-
-  private static void writeInt64(Object message, Writer writer, int fieldNumber, long offset) {
-    long value = UnsafeUtil.getLong(message, offset);
-    if (value != 0) {
-      writer.writeInt64(fieldNumber, value);
-    }
-  }
-
-  private static void writeUInt64(Object message, Writer writer, int fieldNumber, long offset) {
-    long value = UnsafeUtil.getLong(message, offset);
-    if (value != 0) {
-      writer.writeUInt64(fieldNumber, value);
-    }
-  }
-
-  private static void writeSInt64(Object message, Writer writer, int fieldNumber, long offset) {
-    long value = UnsafeUtil.getLong(message, offset);
-    if (value != 0) {
-      writer.writeSInt64(fieldNumber, value);
-    }
-  }
-
-  private static void writeFixed64(Object message, Writer writer, int fieldNumber, long offset) {
-    long value = UnsafeUtil.getLong(message, offset);
-    if (value != 0) {
-      writer.writeFixed64(fieldNumber, value);
-    }
-  }
-
-  private static void writeSFixed64(Object message, Writer writer, int fieldNumber, long offset) {
-    long value = UnsafeUtil.getLong(message, offset);
-    if (value != 0) {
-      writer.writeSFixed64(fieldNumber, value);
-    }
-  }
-
-  private static void writeInt32(Object message, Writer writer, int fieldNumber, long offset) {
-    int value = UnsafeUtil.getInt(message, offset);
-    if (value != 0) {
-      writer.writeInt32(fieldNumber, value);
-    }
-  }
-
-  private static void writeUInt32(Object message, Writer writer, int fieldNumber, long offset) {
-    int value = UnsafeUtil.getInt(message, offset);
-    if (value != 0) {
-      writer.writeUInt32(fieldNumber, value);
-    }
-  }
-
-  private static void writeSInt32(Object message, Writer writer, int fieldNumber, long offset) {
-    int value = UnsafeUtil.getInt(message, offset);
-    if (value != 0) {
-      writer.writeSInt32(fieldNumber, value);
-    }
-  }
-
-  private static void writeFixed32(Object message, Writer writer, int fieldNumber, long offset) {
-    int value = UnsafeUtil.getInt(message, offset);
-    if (value != 0) {
-      writer.writeFixed32(fieldNumber, value);
-    }
-  }
-
-  private static void writeSFixed32(Object message, Writer writer, int fieldNumber, long offset) {
-    int value = UnsafeUtil.getInt(message, offset);
-    if (value != 0) {
-      writer.writeSFixed32(fieldNumber, value);
-    }
-  }
-
-  private static void writeEnum(Object message, Writer writer, int fieldNumber, long offset) {
-    int value = UnsafeUtil.getInt(message, offset);
-    if (value != 0) {
-      writer.writeEnum(fieldNumber, value);
-    }
-  }
-
-  private static void writeBool(Object message, Writer writer, int fieldNumber, long offset) {
-    if (UnsafeUtil.getBoolean(message, offset)) {
-      writer.writeBool(fieldNumber, true);
-    }
-  }
-
-  private static void writeString(Object message, Writer writer, int fieldNumber, long offset) {
-    @SuppressWarnings("unchecked")
-    String value = (String) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeString(fieldNumber, value);
-    }
-  }
-
-  private static void writeBytes(Object message, Writer writer, int fieldNumber, long offset) {
-    @SuppressWarnings("unchecked")
-    ByteString value = (ByteString) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeBytes(fieldNumber, value);
-    }
-  }
-
-  private static void writeMessage(Object message, Writer writer, int fieldNumber, long offset) {
-    Object value = UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeMessage(fieldNumber, value);
-    }
-  }
-
-  private static void writeDoubleList(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Double> value = (List<Double>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeDoubleList(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeFloatList(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Float> value = (List<Float>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeFloatList(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeInt64List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Long> value = (List<Long>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeInt64List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeUInt64List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Long> value = (List<Long>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeUInt64List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeSInt64List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Long> value = (List<Long>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeSInt64List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeFixed64List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Long> value = (List<Long>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeFixed64List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeSFixed64List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Long> value = (List<Long>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeSFixed64List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeInt32List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Integer> value = (List<Integer>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeInt32List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeUInt32List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Integer> value = (List<Integer>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeUInt32List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeSInt32List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Integer> value = (List<Integer>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeSInt32List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeFixed32List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Integer> value = (List<Integer>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeFixed32List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeSFixed32List(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Integer> value = (List<Integer>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeSFixed32List(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeEnumList(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Integer> value = (List<Integer>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeEnumList(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeBoolList(Object message, Writer writer, int fieldNumber, long offset, boolean packed) {
-    @SuppressWarnings("unchecked")
-    List<Boolean> value = (List<Boolean>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeBoolList(fieldNumber, packed, value);
-    }
-  }
-
-  private static void writeStringList(Object message, Writer writer, int fieldNumber, long offset) {
-    @SuppressWarnings("unchecked")
-    List<String> value = (List<String>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeStringList(fieldNumber, value);
-    }
-  }
-
-  private static void writeBytesList(Object message, Writer writer, int fieldNumber, long offset) {
-    @SuppressWarnings("unchecked")
-    List<ByteString> value = (List<ByteString>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeBytesList(fieldNumber, value);
-    }
-  }
-
-  private static void writeMessageList(Object message, Writer writer, int fieldNumber, long offset) {
-    @SuppressWarnings("unchecked")
-    List<?> value = (List<?>) UnsafeUtil.getObject(message, offset);
-    if (value != null) {
-      writer.writeMessageList(fieldNumber, value);
-    }
+    return temp;
   }
 
   private static FieldType getFieldType(long data) {
@@ -625,5 +252,131 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
 
   private static byte getFieldTypeId(long data) {
     return (byte) (data >> 32);
+  }
+
+  private static final class FieldIterator implements Iterator<Field> {
+    private int fieldIndex;
+    private final Field[] fields;
+
+    FieldIterator(Field[] fields) {
+      this.fields = fields;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return fieldIndex < fields.length;
+    }
+
+    @Override
+    public Field next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+
+      return fields[fieldIndex++];
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  private static final class FieldImpl implements Field {
+    private final long[] data;
+    private final int dataPos;
+
+    FieldImpl(long[] data, int dataPos) {
+      this.data = data;
+      this.dataPos = dataPos;
+    }
+
+    @Override
+    public int number() {
+      return getFieldNumber(data[dataPos]);
+    }
+
+    @Override
+    public FieldType type() {
+      return getFieldType(data[dataPos]);
+    }
+
+    private long valueOffset() {
+      return data[dataPos + 1];
+    }
+
+    @Override
+    public int intValue(Object message) {
+      if (type().getJavaType() != JavaType.INT) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      return UnsafeUtil.getInt(message, valueOffset());
+    }
+
+    @Override
+    public <E extends Enum<E>> Enum<E> enumValue(Object message, Class<E> clazz) {
+      if (type().getJavaType() != JavaType.ENUM) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      return clazz.cast(UnsafeUtil.getObject(message, valueOffset()));
+    }
+
+    @Override
+    public long longValue(Object message) {
+      if (type().getJavaType() != JavaType.LONG) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      return UnsafeUtil.getLong(message, valueOffset());
+    }
+
+    @Override
+    public double doubleValue(Object message) {
+      if (type().getJavaType() != JavaType.DOUBLE) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      return UnsafeUtil.getDouble(message, valueOffset());
+    }
+
+    @Override
+    public float floatValue(Object message) {
+      if (type().getJavaType() != JavaType.FLOAT) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      return UnsafeUtil.getFloat(message, valueOffset());
+    }
+
+    @Override
+    public Object messageValue(Object message) {
+      if (type().getJavaType() != JavaType.MESSAGE) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      return UnsafeUtil.getObject(message, valueOffset());
+    }
+
+    @Override
+    public String stringValue(Object message) {
+      if (type().getJavaType() != JavaType.STRING) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      return (String) UnsafeUtil.getObject(message, valueOffset());
+    }
+
+    @Override
+    public ByteString bytesValue(Object message) {
+      if (type().getJavaType() != JavaType.BYTE_STRING) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      return (ByteString) UnsafeUtil.getObject(message, valueOffset());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <L> List<L> values(Object message, Class<? extends List<L>> clazz) {
+      if (type().getJavaType() != JavaType.LIST) {
+        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+      }
+      // TODO(nathanmittler): check the type parameter before casting.
+      return (List<L>) UnsafeUtil.getObject(message, valueOffset());
+    }
   }
 }

@@ -234,7 +234,7 @@ public enum FieldType {
         if (repeated) {
           return packed ? PACKED_ENUM_LIST : ENUM_LIST;
         }
-        checkRequiredType(int.class, protoField, fieldType);
+        checkRequiredType(Enum.class, protoField, fieldType);
         return ENUM;
       case SFIXED32:
         if (repeated) {
@@ -266,7 +266,7 @@ public enum FieldType {
   }
 
   private static void checkRequiredType(Class<?> requiredType, ProtoField protoField, Class<?> fieldType) {
-    if (requiredType != fieldType) {
+    if (!requiredType.isAssignableFrom(fieldType)) {
       throw new IllegalArgumentException(String.format(
               "Field type %s cannot be applied to %s ",
               protoField.type().name(),

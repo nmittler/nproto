@@ -117,7 +117,7 @@ public class WriteToBenchmark {
     }
 
     @Override
-    public void writeEnum(int fieldNumber, int value) {
+    public <E extends Enum<E>> void writeEnum(int fieldNumber, E value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
@@ -231,7 +231,7 @@ public class WriteToBenchmark {
     }
 
     @Override
-    public void writeEnumList(int fieldNumber, boolean packed, List<Integer> value) {
+    public <E extends Enum<E>> void writeEnumList(int fieldNumber, boolean packed, List<E> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
