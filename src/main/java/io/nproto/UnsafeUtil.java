@@ -19,7 +19,8 @@ public final class UnsafeUtil {
           supportsUnsafeByteBufferOperations();
   private static final boolean HAS_UNSAFE_ARRAY_OPERATIONS = supportsUnsafeArrayOperations();
   private static final long BYTE_ARRAY_BASE_OFFSET = arrayBaseOffset(byte[].class);
-  private static final long BUFFER_ADDRESS_OFFSET = fieldOffset(field(Buffer.class, "address"));
+  private static final long BUFFER_ADDRESS_OFFSET =
+          UNSAFE == null ? -1 : fieldOffset(field(Buffer.class, "address"));
 
   private UnsafeUtil() {
   }
@@ -45,7 +46,7 @@ public final class UnsafeUtil {
    * available.
    */
   public static long fieldOffset(Field field) {
-    return field == null || UNSAFE == null ? -1 : UNSAFE.objectFieldOffset(field);
+    return UNSAFE.objectFieldOffset(field);
   }
 
   public static byte getByte(Object target, long offset) {

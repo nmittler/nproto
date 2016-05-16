@@ -39,4 +39,12 @@ public class SchemaCreationBenchmark {
   public Object create() {
     return schemaType.createSchema();
   }
+
+  /*public static void main(String[] args) {
+    SchemaCreationBenchmark bm = new SchemaCreationBenchmark();
+    bm.schemaType = SchemaType.REFLECTIVE;
+    while (true) {
+      bm.create();
+    }
+  }*/
 }
