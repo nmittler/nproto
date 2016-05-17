@@ -377,15 +377,6 @@ public final class SchemaUtil {
     writeMessageList(fieldNumber, (List<?>) UnsafeUtil.getObject(message, offset), writer);
   }
 
-
-
-
-
-
-
-
-
-
   public static void unsafeReadDouble(Object message, long offset, Reader reader) {
     UnsafeUtil.putDouble(message, offset, reader.readDouble());
   }
@@ -555,6 +546,24 @@ public final class SchemaUtil {
     // Now order them in ascending order by their field number.
     Collections.sort(fields);
     return fields;
+  }
+
+  /**
+   * Determines whether to issue tableswitch or lookupswitch for the mergeFrom method.
+   */
+  public static boolean shouldUseTableSwitch(List<FieldInfo> fields) {
+    // Determine whether to issue a tableswitch or a lookupswitch
+    // instruction.
+    if (fields.isEmpty()) {
+      return false;
+    }
+    int lo = fields.get(0).fieldNumber;
+    int hi = fields.get(fields.size() - 1).fieldNumber;
+    long table_space_cost = 4 + ((long) hi - lo + 1); // words
+    long table_time_cost = 3; // comparisons
+    long lookup_space_cost = 3 + 2 * (long) fields.size();
+    long lookup_time_cost = fields.size();
+    return table_space_cost + 3 * table_time_cost <= lookup_space_cost + 3 * lookup_time_cost;
   }
 
   private static void getAllFieldInfo(Class<?> clazz, List<FieldInfo> fields) {

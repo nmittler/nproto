@@ -95,21 +95,27 @@ public final class AsmSchemaFactory implements SchemaFactory {
     generateConstructor(cv);
 
     List<FieldInfo> fields = SchemaUtil.getAllFieldInfo(messageType);
-    long[] offsets = getOffsets(fields);
-    generateWriteTo(cv, fields, offsets);
-    generateMergeFrom(cv, fields, offsets);
+    WriteToGenerator writeTo = new WriteToGenerator(cv);
+    MergeFromGenerator mergeFrom = new MergeFromGenerator(cv, fields);
+    int lastFieldNumber = Integer.MAX_VALUE;
+    for (int i = 0; i < fields.size(); ++i) {
+      FieldInfo f = fields.get(i);
+      if (lastFieldNumber == f.fieldNumber) {
+        // Disallow duplicate field numbers.
+        throw new RuntimeException("Duplicate field number: " + f.fieldNumber);
+      }
+      lastFieldNumber = f.fieldNumber;
+
+      long offset = fieldOffset(f.field);
+      writeTo.addField(f, offset);
+      mergeFrom.addField(f, i, offset);
+    }
+    writeTo.end();
+    mergeFrom.end();
 
     // Complete the generation of the class and return a new instance.
     cv.visitEnd();
     return cv.toByteArray();
-  }
-
-  private static long[] getOffsets(List<FieldInfo> fields) {
-    long[] offsets = new long[fields.size()];
-    for (int i = 0; i < fields.size(); ++i) {
-      offsets[i] = fieldOffset(fields.get(i).field);
-    }
-    return offsets;
   }
 
   private static void generateConstructor(ClassVisitor cv) {
@@ -122,141 +128,130 @@ public final class AsmSchemaFactory implements SchemaFactory {
     mv.visitEnd();
   }
 
-  private static void generateMergeFrom(ClassVisitor cv, List<FieldInfo> fields, long[] offsets) {
-    MethodVisitor mv = cv.visitMethod(ACC_PUBLIC, "mergeFrom", MERGE_FROM_DESCRIPTOR, null, null);
-    mv.visitCode();
+  private static final class WriteToGenerator {
+    private final MethodVisitor mv;
+    WriteToGenerator(ClassVisitor cv) {
+      mv = cv.visitMethod(ACC_PUBLIC, "writeTo", WRITE_TO_DESCRIPTOR, null, null);
+      mv.visitCode();
+    }
 
-    // Create the main labels and visit the start.
-    Label startLabel = new Label();
-    Label endLabel = new Label();
-    Label defaultLabel = new Label();
-    mv.visitLabel(startLabel);
-    mv.visitFrame(F_SAME, 0, null, 0, null);
+    void addField(FieldInfo field, long offset) {
+      FIELD_PROCESSORS[field.fieldType.ordinal()].write(mv, field.fieldNumber, offset);
+    }
 
-    // Get the field number form the reader.
-    callReader(mv, "fieldNumber", "()I");
+    void end() {
+      mv.visitInsn(RETURN);
+      mv.visitMaxs(7, 3);
+      mv.visitEnd();
+    }
+  }
 
-    // Make a copy of the field number and store to a local variable. The first check is against
-    // MAXINT since looking for that value in the switch statement would mean that we couldn't use a
-    // tableswitch (rather than lookupswitch).
-    mv.visitInsn(DUP);
-    mv.visitVarInsn(ISTORE, FIELD_NUMBER_INDEX);
-    mv.visitLdcInsn(Reader.READ_DONE);
-    mv.visitJumpInsn(IF_ICMPEQ, endLabel);
+  private static final class MergeFromGenerator {
+    private final MethodVisitor mv;
+    private final Label startLabel;
+    private final Label endLabel;
+    private final Label defaultLabel;
+    private final Label[] labels;
+    private final boolean tableSwitch;
+    private final int lo;
 
-    // Load the field number again for the switch.
-    mv.visitVarInsn(ILOAD, FIELD_NUMBER_INDEX);
-    final int numFields = fields.size();
-    if (shouldUseTableSwitch(fields)) {
-      // Tableswitch
-      int lo = fields.get(0).fieldNumber;
-      int hi = fields.get(numFields - 1).fieldNumber;
-      int numCases = (hi - lo) + 1;
+    MergeFromGenerator(ClassVisitor cv, List<FieldInfo> fields) {
+      mv = cv.visitMethod(ACC_PUBLIC, "mergeFrom", MERGE_FROM_DESCRIPTOR, null, null);
+      mv.visitCode();
 
-      // Create the labels
-      Label[] labels = new Label[numCases];
-      for (int labelIndex = 0, fieldIndex = 0; fieldIndex < numFields; ++fieldIndex) {
-        while (labelIndex < fields.get(fieldIndex).fieldNumber - lo) {
-          // Unused entries in the table drop down to the default case.
-          labels[labelIndex++] = defaultLabel;
+      // Create the main labels and visit the start.
+      startLabel = new Label();
+      endLabel = new Label();
+      defaultLabel = new Label();
+      mv.visitLabel(startLabel);
+      mv.visitFrame(F_SAME, 0, null, 0, null);
+
+      // Get the field number form the reader.
+      callReader(mv, "fieldNumber", "()I");
+
+      // Make a copy of the field number and store to a local variable. The first check is against
+      // MAXINT since looking for that value in the switch statement would mean that we couldn't use a
+      // tableswitch (rather than lookupswitch).
+      mv.visitInsn(DUP);
+      mv.visitVarInsn(ISTORE, FIELD_NUMBER_INDEX);
+      mv.visitLdcInsn(Reader.READ_DONE);
+      mv.visitJumpInsn(IF_ICMPEQ, endLabel);
+
+      // Load the field number again for the switch.
+      mv.visitVarInsn(ILOAD, FIELD_NUMBER_INDEX);
+      final int numFields = fields.size();
+      tableSwitch = SchemaUtil.shouldUseTableSwitch(fields);
+      if (tableSwitch) {
+        // Tableswitch
+
+        // Determine the number of labels (i.e. cases).
+        lo = fields.get(0).fieldNumber;
+        int hi = fields.get(numFields - 1).fieldNumber;
+        int numLabels = (hi - lo) + 1;
+
+        // Create the labels
+        labels = new Label[numLabels];
+        for (int labelIndex = 0, fieldIndex = 0; fieldIndex < numFields; ++fieldIndex) {
+          while (labelIndex < fields.get(fieldIndex).fieldNumber - lo) {
+            // Unused entries in the table drop down to the default case.
+            labels[labelIndex++] = defaultLabel;
+          }
+          labels[labelIndex++] = new Label();
         }
-        labels[labelIndex++] = new Label();
-      }
 
-      // Create the switch statement.
-      mv.visitTableSwitchInsn(lo, hi, defaultLabel, labels);
+        // Create the switch statement.
+        mv.visitTableSwitchInsn(lo, hi, defaultLabel, labels);
+      } else {
+        // Lookupswitch
 
-      // Add the code for the case statements.
-      for (int fieldIndex = 0; fieldIndex < numFields; ++fieldIndex) {
-        mv.visitLabel(labels[fieldIndex]);
-        mv.visitFrame(F_SAME, 0, null, 0, null);
-        int processorIndex = fields.get(fieldIndex).fieldType.ordinal();
-        FIELD_PROCESSORS[processorIndex].read(mv, offsets[fieldIndex]);
-        mv.visitJumpInsn(GOTO, startLabel);
-      }
-    } else {
-      // Lookupswitch
+        // Create the keys and labels.
+        lo = -1;
+        int[] keys = new int[numFields];
+        labels = new Label[numFields];
+        for (int i = 0; i < numFields; ++i) {
+          keys[i] = fields.get(i).fieldNumber;
+          Label label = new Label();
+          labels[i] = label;
+        }
 
-      // Create the keys and labels.
-      int[] keys = new int[numFields];
-      Label[] labels = new Label[numFields];
-      for (int i = 0; i < numFields; ++i) {
-        keys[i] = fields.get(i).fieldNumber;
-        Label label = new Label();
-        labels[i] = label;
-      }
-
-      // Create the switch statement.
-      mv.visitLookupSwitchInsn(defaultLabel, keys, labels);
-
-      // Add the code for the case statements.
-      for (int i = 0; i < numFields; ++i) {
-        mv.visitLabel(labels[i]);
-        mv.visitFrame(F_SAME, 0, null, 0, null);
-        int processorIndex = fields.get(i).fieldType.ordinal();
-        FIELD_PROCESSORS[processorIndex].read(mv, offsets[i]);
-        mv.visitJumpInsn(GOTO, startLabel);
+        // Create the switch statement.
+        mv.visitLookupSwitchInsn(defaultLabel, keys, labels);
       }
     }
 
-    // Default case: skip the unknown field and check for done.
-    mv.visitLabel(defaultLabel);
-    mv.visitFrame(F_SAME, 0, null, 0, null);
-    callReader(mv, "skipField", "()Z");
-    mv.visitJumpInsn(IFNE, startLabel);
+    void addField(FieldInfo field, int fieldIndex, long offset) {
+      if (tableSwitch) {
+          // Tableswitch: Label index is the field number.
+          mv.visitLabel(labels[field.fieldNumber - lo]);
+      } else {
+          // Lookupswitch: Label index is field index.
+          mv.visitLabel(labels[fieldIndex]);
+      }
+      mv.visitFrame(F_SAME, 0, null, 0, null);
+      int processorIndex = field.fieldType.ordinal();
+      FIELD_PROCESSORS[processorIndex].read(mv, offset);
+      mv.visitJumpInsn(GOTO, startLabel);
+    }
 
-    // Finish the method.
-    mv.visitLabel(endLabel);
-    mv.visitFrame(F_SAME, 0, null, 0, null);
-    mv.visitInsn(RETURN);
-    mv.visitMaxs(4, 4);
-    mv.visitEnd();
+    void end() {
+      // Default case: skip the unknown field and check for done.
+      mv.visitLabel(defaultLabel);
+      mv.visitFrame(F_SAME, 0, null, 0, null);
+      callReader(mv, "skipField", "()Z");
+      mv.visitJumpInsn(IFNE, startLabel);
+
+      // Finish the method.
+      mv.visitLabel(endLabel);
+      mv.visitFrame(F_SAME, 0, null, 0, null);
+      mv.visitInsn(RETURN);
+      mv.visitMaxs(4, 4);
+      mv.visitEnd();
+    }
   }
 
   private static void callReader(MethodVisitor mv, String methodName, String methodDescriptor) {
     mv.visitVarInsn(ALOAD, READER_INDEX);
     mv.visitMethodInsn(INVOKEINTERFACE, READER_INTERNAL_NAME, methodName, methodDescriptor, true);
-  }
-
-  private static void generateWriteTo(ClassVisitor cv, List<FieldInfo> fields, long[] offsets) {
-    final int numFields = fields.size();
-
-    final MethodVisitor writeTo = cv.visitMethod(ACC_PUBLIC, "writeTo", WRITE_TO_DESCRIPTOR, null, null);
-    writeTo.visitCode();
-    int lastFieldNumber = Integer.MAX_VALUE;
-    for (int i = 0; i < numFields; ++i) {
-      FieldInfo f = fields.get(i);
-      if (lastFieldNumber == f.fieldNumber) {
-        // Disallow duplicate field numbers.
-        throw new RuntimeException("Duplicate field number: " + f.fieldNumber);
-      }
-      lastFieldNumber = f.fieldNumber;
-
-      // Generate the writeTo code for this field.
-      int fieldIndex = f.fieldType.ordinal();
-      FIELD_PROCESSORS[fieldIndex].write(writeTo, f.fieldNumber, offsets[i]);
-    }
-    writeTo.visitInsn(RETURN);
-    writeTo.visitMaxs(7, 3);
-    writeTo.visitEnd();
-  }
-
-  /**
-   * Determines whether to issue tableswitch or lookupswitch for the mergeFrom method.
-   */
-  private static boolean shouldUseTableSwitch(List<FieldInfo> fields) {
-    // Determine whether to issue a tableswitch or a lookupswitch
-    // instruction.
-    if (fields.isEmpty()) {
-      return false;
-    }
-    int lo = fields.get(0).fieldNumber;
-    int hi = fields.get(fields.size() - 1).fieldNumber;
-    long table_space_cost = 4 + ((long) hi - lo + 1); // words
-    long table_time_cost = 3; // comparisons
-    long lookup_space_cost = 3 + 2 * (long) fields.size();
-    long lookup_time_cost = fields.size();
-    return table_space_cost + 3 * table_time_cost <= lookup_space_cost + 3 * lookup_time_cost;
   }
 
   /*private static void writeField(MethodVisitor mv, int fieldNumber, FieldType fieldType, long offset) {

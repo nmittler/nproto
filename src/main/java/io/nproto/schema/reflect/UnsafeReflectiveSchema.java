@@ -12,11 +12,11 @@ import io.nproto.schema.Field;
 import io.nproto.schema.Schema;
 import io.nproto.schema.SchemaUtil;
 import io.nproto.schema.SchemaUtil.FieldInfo;
-import io.nproto.util.IntToIntHashMap;
 
 import sun.plugin.dom.exception.InvalidStateException;
 
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -25,18 +25,13 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
   private static final int ENTRIES_PER_FIELD = 2;
   private static final int LONG_LENGTH = 8;
   private static final int FIELD_LENGTH = ENTRIES_PER_FIELD * LONG_LENGTH;
-
+  private static final long DATA_OFFSET = UnsafeUtil.arrayBaseOffset(long[].class);
   private final long[] data;
-  private final long dataOffset;
   private final long dataLimit;
-  private final IntToIntHashMap fieldMap;
+  private final FieldMap fieldMap;
 
-  // Array that holds lazy entries for fields.
+  // Array that holds lazy entries for fields used for iteration.
   private WeakReference<Field[]> fields;
-
-  //private final int[] fieldNumbers;
-  //private final FieldType[] fieldTypes;
-  //private final byte[] fieldTypes;
 
   static <T> UnsafeReflectiveSchema<T> newInstance(Class<T> messageType) {
     return new UnsafeReflectiveSchema<T>(messageType);
@@ -45,26 +40,22 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
   private UnsafeReflectiveSchema(Class<T> messageType) {
     List<FieldInfo> fieldInfos = SchemaUtil.getAllFieldInfo(messageType);
     final int numFields = fieldInfos.size();
-    //data = new long[numFields];
-    //fieldNumbers = new int[numFields];
-    //fieldTypes = new byte[numFields];
+    fieldMap = SchemaUtil.shouldUseTableSwitch(fieldInfos) ?
+            new TableFieldMap(fieldInfos) : new LookupFieldMap(fieldInfos);
     data = new long[numFields * ENTRIES_PER_FIELD];
-    fieldMap = new IntToIntHashMap((int)(numFields / IntToIntHashMap.DEFAULT_LOAD_FACTOR) + 1);
     int lastFieldNumber = Integer.MAX_VALUE;
-    for (int i = 0, dataPos = 0; i < numFields; ++i) {
+    long dataPos = DATA_OFFSET;
+    for (int i = 0; i < numFields; ++i) {
       FieldInfo f = fieldInfos.get(i);
       if (f.fieldNumber == lastFieldNumber) {
         throw new RuntimeException("Duplicate field number: " + f.fieldNumber);
       }
-      fieldMap.put(f.fieldNumber, dataPos);
-      data[dataPos++] = (((long) f.fieldType.id()) << 32) | f.fieldNumber;
-      data[dataPos++] = fieldOffset(f.field);
-      //data[i] = fieldOffset(f.field);
-      //fieldNumbers[i] = f.fieldNumber;
-      //fieldTypes[i] = (byte) f.fieldType.id();
+      fieldMap.loadField(f, i, dataPos);
+      UnsafeUtil.putLong(data, dataPos, (((long) f.fieldType.id()) << 32) | f.fieldNumber);
+      UnsafeUtil.putLong(data, dataPos + LONG_LENGTH, fieldOffset(f.field));
+      dataPos += FIELD_LENGTH;
     }
-    dataOffset = UnsafeUtil.arrayBaseOffset(long[].class);
-    dataLimit = dataOffset + (data.length * LONG_LENGTH);
+    dataLimit = DATA_OFFSET + (data.length * LONG_LENGTH);
   }
 
   @Override
@@ -75,8 +66,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
 
   @Override
   public void writeTo(T message, Writer writer) {
-    //for(int i = 0; i < data.length; ++i) {
-    for(long pos = dataOffset; pos < dataLimit; pos += FIELD_LENGTH) {
+    for(long pos = DATA_OFFSET; pos < dataLimit; pos += FIELD_LENGTH) {
       // Switching on the field type ID to avoid the lookup of FieldType.
       final long numberAndType = getLong(pos);
       final int fieldNumber = getFieldNumber(numberAndType);
@@ -236,16 +226,15 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     while (true) {
       int fieldNumber = reader.fieldNumber();
       if (fieldNumber == Reader.READ_DONE) {
-        break;
+        // Done reading.
+        return;
       }
-      int dataPos = fieldMap.get(fieldNumber);
-      if (dataPos == IntToIntHashMap.NULL_VALUE) {
-        // Unknown field.
-        if (!reader.skipField()) {
-          break;
-        }
-      } else {
-        mergeFieldFrom(message, dataOffset + (dataPos * LONG_LENGTH), reader);
+      long dataPos = fieldMap.getDataPos(fieldNumber);
+      if (dataPos >= 0) {
+        mergeFieldFrom(message, dataPos, reader);
+      } else if (!reader.skipField()) {
+        // We're done after skipping the unknown field.
+        return;
       }
     }
   }
@@ -553,6 +542,64 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
       }
       // TODO(nathanmittler): check the type parameter before casting.
       return (List<L>) UnsafeUtil.getObject(message, valueOffset());
+    }
+  }
+
+  private static abstract class FieldMap {
+    abstract long getDataPos(int fieldNumber);
+    abstract void loadField(FieldInfo field, int fieldIndex, long dataPos);
+  }
+
+  private static final class TableFieldMap extends FieldMap {
+    private final int min;
+    private final long[] positions;
+
+    TableFieldMap(List<FieldInfo> fields) {
+      min = fields.get(0).fieldNumber;
+      int max = fields.get(fields.size() - 1).fieldNumber;
+      int numPositions = (max - min) + 1;
+      positions = new long[numPositions];
+    }
+
+    @Override
+    void loadField(FieldInfo field, int fieldIndex, long dataPos) {
+      positions[field.fieldNumber - min] = dataPos;
+    }
+
+    @Override
+    long getDataPos(int fieldNumber) {
+      return positions[fieldNumber - min];
+    }
+  }
+
+  private static final class LookupFieldMap extends FieldMap {
+    private final int[] fieldNumbers;
+    private final long[] positions;
+
+    LookupFieldMap(List<FieldInfo> fields) {
+      int numFields = fields.size();
+      fieldNumbers = new int[numFields];
+      positions = new long[numFields];
+      for (int i = 0; i < numFields; ++i) {
+        fieldNumbers[i] = fields.get(i).fieldNumber;
+        positions[i] = UnsafeUtil.arrayBaseOffset(long[].class) + (i * FIELD_LENGTH);
+      }
+    }
+
+    @Override
+    void loadField(FieldInfo field, int fieldIndex, long dataPos) {
+      fieldNumbers[fieldIndex] = field.fieldNumber;
+      positions[fieldIndex] = dataPos;
+    }
+
+    @Override
+    long getDataPos(int fieldNumber) {
+      int i = Arrays.binarySearch(fieldNumbers, fieldNumber);
+      if (i < 0) {
+        return -1;
+      }
+      // TODO: Consider avoiding allocation of the positions[] by computing dataPos from i.
+      return positions[i];
     }
   }
 }
