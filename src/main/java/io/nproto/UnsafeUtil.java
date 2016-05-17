@@ -57,6 +57,30 @@ public final class UnsafeUtil {
     UNSAFE.putByte(target, offset, value);
   }
 
+  public static void putInt(Object target, long offset, int value) {
+    UNSAFE.putInt(target, offset, value);
+  }
+
+  public static void putLong(Object target, long offset, long value) {
+    UNSAFE.putLong(target, offset, value);
+  }
+
+  public static void putBoolean(Object target, long offset, boolean value) {
+    UNSAFE.putBoolean(target, offset, value);
+  }
+
+  public static void putDouble(Object target, long offset, double value) {
+    UNSAFE.putDouble(target, offset, value);
+  }
+
+  public static void putFloat(Object target, long offset, float value) {
+    UNSAFE.putFloat(target, offset, value);
+  }
+
+  public static void putObject(Object target, long offset, Object value) {
+    UNSAFE.putObject(target, offset, value);
+  }
+
   public static long getLong(Object target, long offset) {
     return UNSAFE.getLong(target, offset);
   }

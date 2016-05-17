@@ -7,55 +7,24 @@ import io.nproto.ByteString;
 import io.nproto.FieldType;
 import io.nproto.PojoMessage;
 import io.nproto.PojoMessage.MyEnum;
+import io.nproto.Reader;
 import io.nproto.Writer;
 import io.nproto.schema.Field;
 import io.nproto.schema.Schema;
+import io.nproto.schema.TestUtil;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.List;
 
-public class ReflectiveSchemaFactoryTest {
+public class UnsafeReflectiveSchemaFactoryTest {
   private PojoMessage msg;
   private Schema<PojoMessage> schema;
 
   @Before
   public void setup() {
-    msg = new PojoMessage();
-    msg.uint32Field = 1;
-    msg.int32Field = 2;
-    msg.fixedInt32Field = 3;
-    msg.sInt32Field = 4;
-    msg.sFixedInt32Field = 5;
-
-    msg.uint64Field = 5;
-    msg.int64Field = 6;
-    msg.fixedInt64Field = 7;
-    msg.sInt64Field = 8;
-    msg.sFixedInt64Field = 9;
-
-    msg.stringField = "hello world";
-    msg.bytesField = ByteString.copyFromUtf8("here are some bytes");
-    msg.messageField = new Object();
-
-    msg.uint32ListField = Arrays.asList(1, 2);
-    msg.int32ListField = Arrays.asList(3, 4);
-    msg.fixedInt32ListField = Arrays.asList(5, 6);
-    msg.sInt32ListField = Arrays.asList(7, 8);
-    msg.sFixedInt32ListField = Arrays.asList(9, 10);
-
-    msg.uint64ListField = Arrays.asList(1L, 2L);
-    msg.int64ListField = Arrays.asList(3L, 4L);
-    msg.fixedInt64ListField = Arrays.asList(5L, 6L);
-    msg.sInt64ListField = Arrays.asList(7L, 8L);
-    msg.sFixedInt64ListField = Arrays.asList(9L, 10L);
-
-    msg.stringListField = Arrays.asList("ab", "cd");
-    msg.bytesListField = Arrays.asList(ByteString.copyFromUtf8("ab"), ByteString.copyFromUtf8("cd"));
-    msg.messageListField = Arrays.asList(new Object(), new Object());
-
+    msg = TestUtil.newTestMessage();
     schema = new UnsafeReflectiveSchemaFactory().createSchema(PojoMessage.class);
   }
 
@@ -135,6 +104,15 @@ public class ReflectiveSchemaFactoryTest {
   @Test
   public void testWriteTo() {
     schema.writeTo(msg, new MyWriter());
+  }
+
+  @Test
+  public void testMergeFrom() {
+    Reader reader = new TestUtil.PojoReader(msg);
+
+    PojoMessage newMsg = new PojoMessage();
+    schema.mergeFrom(newMsg, reader);
+    assertEquals(msg, newMsg);
   }
 
   private static final class MyWriter implements Writer {

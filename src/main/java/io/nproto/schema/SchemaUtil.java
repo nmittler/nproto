@@ -4,8 +4,10 @@ import io.nproto.ByteString;
 import io.nproto.FieldType;
 import io.nproto.Internal;
 import io.nproto.ProtoField;
+import io.nproto.Reader;
 import io.nproto.UnsafeUtil;
 import io.nproto.Writer;
+import io.nproto.util.IntToIntHashMap;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -373,6 +375,161 @@ public final class SchemaUtil {
   @SuppressWarnings("unchecked")
   public static void unsafeWriteMessageList(int fieldNumber, Object message, long offset, Writer writer) {
     writeMessageList(fieldNumber, (List<?>) UnsafeUtil.getObject(message, offset), writer);
+  }
+
+
+
+
+
+
+
+
+
+
+  public static void unsafeReadDouble(Object message, long offset, Reader reader) {
+    UnsafeUtil.putDouble(message, offset, reader.readDouble());
+  }
+
+  public static void unsafeReadFloat(Object message, long offset, Reader reader) {
+    UnsafeUtil.putFloat(message, offset, reader.readFloat());
+  }
+
+  public static void unsafeReadInt64(Object message, long offset, Reader reader) {
+    UnsafeUtil.putLong(message, offset, reader.readInt64());
+  }
+
+  public static void unsafeReadUInt64(Object message, long offset, Reader reader) {
+    UnsafeUtil.putLong(message, offset, reader.readUInt64());
+  }
+
+  public static void unsafeReadSInt64(Object message, long offset, Reader reader) {
+    UnsafeUtil.putLong(message, offset, reader.readSInt64());
+  }
+
+  public static void unsafeReadFixed64(Object message, long offset, Reader reader) {
+    UnsafeUtil.putLong(message, offset, reader.readFixed64());
+  }
+
+  public static void unsafeReadSFixed64(Object message, long offset, Reader reader) {
+    UnsafeUtil.putLong(message, offset, reader.readSFixed64());
+  }
+
+  public static void unsafeReadInt32(Object message, long offset, Reader reader) {
+    UnsafeUtil.putInt(message, offset, reader.readInt32());
+  }
+
+  public static void unsafeReadUInt32(Object message, long offset, Reader reader) {
+    UnsafeUtil.putInt(message, offset, reader.readUInt32());
+  }
+
+  public static void unsafeReadSInt32(Object message, long offset, Reader reader) {
+    UnsafeUtil.putInt(message, offset, reader.readSInt32());
+  }
+
+  public static void unsafeReadFixed32(Object message, long offset, Reader reader) {
+    UnsafeUtil.putInt(message, offset, reader.readFixed32());
+  }
+
+  public static void unsafeReadSFixed32(Object message, long offset, Reader reader) {
+    UnsafeUtil.putInt(message, offset, reader.readSFixed32());
+  }
+
+  public static <E extends Enum<E>> void unsafeReadEnum(Object message, long offset, Reader reader) {
+    UnsafeUtil.putObject(message, offset, reader.readEnum());
+  }
+
+  public static void unsafeReadBool(Object message, long offset, Reader reader) {
+    UnsafeUtil.putBoolean(message, offset, reader.readBool());
+  }
+
+  public static void unsafeReadString(Object message, long offset, Reader reader) {
+    UnsafeUtil.putObject(message, offset, reader.readString());
+  }
+
+  public static void unsafeReadBytes(Object message, long offset, Reader reader) {
+    UnsafeUtil.putObject(message, offset, reader.readBytes());
+  }
+
+  public static void unsafeReadMessage(Object message, long offset, Reader reader) {
+    UnsafeUtil.putObject(message, offset, reader.readMessage());
+  }
+
+  public static void unsafeReadDoubleList(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readDouble());
+  }
+
+  public static void unsafeReadFloatList(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readFloat());
+  }
+
+  public static void unsafeReadInt64List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readInt64());
+  }
+
+  public static void unsafeReadUInt64List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readUInt64());
+  }
+
+  public static void unsafeReadSInt64List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readSInt64());
+  }
+
+  public static void unsafeReadFixed64List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readFixed64());
+  }
+
+  public static void unsafeReadSFixed64List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readSFixed64());
+  }
+
+  public static void unsafeReadInt32List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readInt32());
+  }
+
+  public static void unsafeReadUInt32List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readUInt32());
+  }
+
+  public static void unsafeReadSInt32List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readSInt32());
+  }
+
+  public static void unsafeReadFixed32List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readFixed32());
+  }
+
+  public static void unsafeReadSFixed32List(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readSFixed32());
+  }
+
+  public static <E extends Enum<E>> void unsafeReadEnumList(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readEnum());
+  }
+
+  public static void unsafeReadBoolList(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readBool());
+  }
+
+  public static void unsafeReadStringList(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readString());
+  }
+
+  public static void unsafeReadBytesList(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readBytes());
+  }
+
+  public static void unsafeReadMessageList(Object message, long offset, Reader reader) {
+    getOrCreateList(message, offset).add(reader.readMessage());
+  }
+
+  private static <L> List<L> getOrCreateList(Object message, long offset) {
+    @SuppressWarnings("unchecked")
+    List<L> list = (List<L>) UnsafeUtil.getObject(message, offset);
+    if (list == null) {
+      list = new ArrayList<L>();
+      UnsafeUtil.putObject(message, offset, list);
+    }
+    return list;
   }
 
   public static final class FieldInfo implements Comparable<FieldInfo> {

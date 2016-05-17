@@ -1,10 +1,12 @@
 package io.nproto;
 
 public interface Reader {
+  int READ_DONE = Integer.MAX_VALUE;
 
-  int readTag();
+  //int readTag();
+  int fieldNumber();
 
-  void skipField();
+  boolean skipField();
 
   // TODO(nathanmittler): Consider reading Lists. Could improve performance for repeated fields.
   double readDouble();
@@ -25,13 +27,13 @@ public interface Reader {
 
   String readString();
 
-  void readMessage(Object message);
+  Object readMessage();
 
   ByteString readBytes();
 
   int readUInt32();
 
-  int readEnum();
+  Enum<?> readEnum();
 
   int readSFixed32();
 
