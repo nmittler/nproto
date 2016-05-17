@@ -1,4 +1,4 @@
-package io.nproto.schema.gen;
+package io.nproto.schema.handwritten;
 
 import io.nproto.PojoMessage;
 import io.nproto.schema.AbstractSchemaFactoryTest;
@@ -7,9 +7,9 @@ import io.nproto.schema.Schema;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class AsmSchemaFactoryTest extends AbstractSchemaFactoryTest {
+public class HandwrittenSchemaFactoryTest extends AbstractSchemaFactoryTest {
   private static final Schema<PojoMessage> SCHEMA =
-          new AsmSchemaFactory().createSchema(PojoMessage.class);
+          new HandwrittenSchemaFactory().createSchema(PojoMessage.class);
 
   @Override
   protected Schema<PojoMessage> schema() {

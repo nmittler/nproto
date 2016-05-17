@@ -2,8 +2,10 @@ package io.nproto.schema;
 
 import io.nproto.ByteString;
 import io.nproto.PojoMessage;
+import io.nproto.Reader;
 import io.nproto.Writer;
 import io.nproto.schema.gen.AsmSchemaFactory;
+import io.nproto.schema.handwritten.HandwrittenSchemaFactory;
 import io.nproto.schema.reflect.UnsafeReflectiveSchemaFactory;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -14,67 +16,58 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.Arrays;
 import java.util.List;
 
 @State(Scope.Benchmark)
 @Fork(1)
-public class WriteToBenchmark {
+public class SchemaBenchmark {
   public enum SchemaType {
+    HANDWRITTEN(new HandwrittenSchemaFactory()),
     REFLECTIVE(new UnsafeReflectiveSchemaFactory()),
-    ASM(new AsmSchemaFactory());
+    ASM(new AsmSchemaFactory()) {
+      @Override
+      byte[] createSchema() {
+        return AsmSchemaFactory.createSchemaClass(PojoMessage.class);
+      }
+    };
 
     SchemaType(SchemaFactory factory) {
+      this.factory = factory;
       schema = factory.createSchema(PojoMessage.class);
     }
 
-    void writeTo(PojoMessage message, Writer writer) {
+    final void mergeFrom(PojoMessage message, Reader reader) {
+      schema.mergeFrom(message, reader);
+    }
+
+    final void writeTo(PojoMessage message, Writer writer) {
       schema.writeTo(message, writer);
     }
 
+    Object createSchema() {
+      return factory.createSchema(PojoMessage.class);
+    }
+
+    private final SchemaFactory factory;
     private final Schema<PojoMessage> schema;
-  };
+  }
 
   @Param
   private SchemaType schemaType;
 
-  private PojoMessage msg;
+  private PojoMessage msg = TestUtil.newTestMessage();
   private TestWriter writer = new TestWriter();
+  private TestUtil.PojoReader reader = new TestUtil.PojoReader(msg);
 
-  @Setup
-  public void setup() {
-    msg = new PojoMessage();
-    msg.uint32Field = 1;
-    msg.int32Field = 2;
-    msg.fixedInt32Field = 3;
-    msg.sInt32Field = 4;
-    msg.sFixedInt32Field = 5;
+  @Benchmark
+  public Object create() {
+    return schemaType.createSchema();
+  }
 
-    msg.uint64Field = 5;
-    msg.int64Field = 6;
-    msg.fixedInt64Field = 7;
-    msg.sInt64Field = 8;
-    msg.sFixedInt64Field = 9;
-
-    msg.stringField = "hello world";
-    msg.bytesField = ByteString.copyFromUtf8("here are some bytes");
-    msg.messageField = new Object();
-
-    msg.uint32ListField = Arrays.asList(1, 2);
-    msg.int32ListField = Arrays.asList(3, 4);
-    msg.fixedInt32ListField = Arrays.asList(5, 6);
-    msg.sInt32ListField = Arrays.asList(7, 8);
-    msg.sFixedInt32ListField = Arrays.asList(9, 10);
-
-    msg.uint64ListField = Arrays.asList(1L, 2L);
-    msg.int64ListField = Arrays.asList(3L, 4L);
-    msg.fixedInt64ListField = Arrays.asList(5L, 6L);
-    msg.sInt64ListField = Arrays.asList(7L, 8L);
-    msg.sFixedInt64ListField = Arrays.asList(9L, 10L);
-
-    msg.stringListField = Arrays.asList("ab", "cd");
-    msg.bytesListField = Arrays.asList(ByteString.copyFromUtf8("ab"), ByteString.copyFromUtf8("cd"));
-    msg.messageListField = Arrays.asList(new Object(), new Object());
+  @Benchmark
+  public void mergeFrom() {
+    schemaType.mergeFrom(new PojoMessage(), reader);
+    reader.reset();
   }
 
   @Benchmark
