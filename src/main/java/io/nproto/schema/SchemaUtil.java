@@ -123,55 +123,55 @@ public final class SchemaUtil {
   }
 
   public static void writeDoubleList(int fieldNumber, List<Double> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeDoubleList(fieldNumber, packed, value);
     }
   }
 
   public static void writeFloatList(int fieldNumber, List<Float> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeFloatList(fieldNumber, packed, value);
     }
   }
 
   public static void writeInt64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeInt64List(fieldNumber, packed, value);
     }
   }
 
   public static void writeUInt64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeUInt64List(fieldNumber, packed, value);
     }
   }
 
   public static void writeSInt64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeSInt64List(fieldNumber, packed, value);
     }
   }
 
   public static void writeFixed64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeFixed64List(fieldNumber, packed, value);
     }
   }
 
   public static void writeSFixed64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeSFixed64List(fieldNumber, packed, value);
     }
   }
 
   public static void writeInt32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeInt32List(fieldNumber, packed, value);
     }
   }
 
   public static void writeUInt32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeUInt32List(fieldNumber, packed, value);
     }
   }
@@ -183,43 +183,43 @@ public final class SchemaUtil {
   }
 
   public static void writeFixed32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeFixed32List(fieldNumber, packed, value);
     }
   }
 
   public static void writeSFixed32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeSFixed32List(fieldNumber, packed, value);
     }
   }
 
   private static <E extends Enum<E>> void writeEnumList(int fieldNumber, List<E> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeEnumList(fieldNumber, packed, value);
     }
   }
 
   public static void writeBoolList(int fieldNumber, List<Boolean> value, boolean packed, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeBoolList(fieldNumber, packed, value);
     }
   }
 
   public static void writeStringList(int fieldNumber, List<String> value, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeStringList(fieldNumber, value);
     }
   }
 
   public static void writeBytesList(int fieldNumber, List<ByteString> value, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeBytesList(fieldNumber, value);
     }
   }
 
   public static void writeMessageList(int fieldNumber, List<?> value, Writer writer) {
-    if (value != null) {
+    if (value != null && !value.isEmpty()) {
       writer.writeMessageList(fieldNumber, value);
     }
   }
