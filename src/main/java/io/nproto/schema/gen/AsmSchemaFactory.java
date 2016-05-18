@@ -1,14 +1,12 @@
 package io.nproto.schema.gen;
 
-import static io.nproto.UnsafeUtil.fieldOffset;
+import static io.nproto.util.UnsafeUtil.fieldOffset;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.DUP;
 import static org.objectweb.asm.Opcodes.F_SAME;
 import static org.objectweb.asm.Opcodes.GOTO;
-import static org.objectweb.asm.Opcodes.ICONST_0;
-import static org.objectweb.asm.Opcodes.ICONST_1;
 import static org.objectweb.asm.Opcodes.IFNE;
 import static org.objectweb.asm.Opcodes.IF_ICMPEQ;
 import static org.objectweb.asm.Opcodes.ILOAD;
@@ -20,15 +18,17 @@ import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V1_6;
 import static org.objectweb.asm.Type.getInternalName;
 
-import io.nproto.FieldType;
 import io.nproto.Internal;
 import io.nproto.JavaType;
 import io.nproto.Reader;
 import io.nproto.Writer;
+import io.nproto.descriptor.AnnotationBeanDescriptorFactory;
+import io.nproto.descriptor.BeanDescriptorFactory;
+import io.nproto.descriptor.PropertyDescriptor;
+import io.nproto.descriptor.PropertyType;
 import io.nproto.schema.Schema;
 import io.nproto.schema.SchemaFactory;
-import io.nproto.schema.SchemaUtil;
-import io.nproto.schema.SchemaUtil.FieldInfo;
+import io.nproto.util.SchemaUtil;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -55,16 +55,30 @@ public final class AsmSchemaFactory implements SchemaFactory {
   private static final int READER_INDEX = 2;
   private static final int FIELD_NUMBER_INDEX = 3;
   private static final FieldProcessor[] FIELD_PROCESSORS;
+
   static {
-    FieldType[] fieldTypes = FieldType.values();
-    FIELD_PROCESSORS = new FieldProcessor[fieldTypes.length];
-    for (int i = 0; i < fieldTypes.length; ++i) {
-      FIELD_PROCESSORS[i] = new FieldProcessor(fieldTypes[i]);
+    PropertyType[] propertyTypes = PropertyType.values();
+    FIELD_PROCESSORS = new FieldProcessor[propertyTypes.length];
+    for (int i = 0; i < propertyTypes.length; ++i) {
+      FIELD_PROCESSORS[i] = new FieldProcessor(propertyTypes[i]);
     }
   }
 
   private static final GeneratedClassLoader CL =
           new GeneratedClassLoader(AsmSchemaFactory.class.getClassLoader());
+
+  private final BeanDescriptorFactory beanDescriptorFactory;
+
+  public AsmSchemaFactory() {
+    this(AnnotationBeanDescriptorFactory.getInstance());
+  }
+
+  public AsmSchemaFactory(BeanDescriptorFactory beanDescriptorFactory) {
+    if (beanDescriptorFactory == null) {
+      throw new NullPointerException("beanDescriptorFactory");
+    }
+    this.beanDescriptorFactory = beanDescriptorFactory;
+  }
 
   @Override
   public <T> Schema<T> createSchema(Class<T> messageType) {
@@ -80,7 +94,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
     }
   }
 
-  public static <T> byte[] createSchemaClass(Class<T> messageType) {
+  public <T> byte[] createSchemaClass(Class<T> messageType) {
     if (messageType.isInterface() || Modifier.isAbstract(messageType.getModifiers())) {
       throw new RuntimeException(
               "The root object can neither be an abstract "
@@ -94,12 +108,12 @@ public final class AsmSchemaFactory implements SchemaFactory {
             new String[]{SCHEMA_INTERNAL_NAME});
     generateConstructor(cv);
 
-    List<FieldInfo> fields = SchemaUtil.getAllFieldInfo(messageType);
+    List<PropertyDescriptor> fields = beanDescriptorFactory.descriptorFor(messageType).getPropertyDescriptors();
     WriteToGenerator writeTo = new WriteToGenerator(cv);
     MergeFromGenerator mergeFrom = new MergeFromGenerator(cv, fields);
     int lastFieldNumber = Integer.MAX_VALUE;
     for (int i = 0; i < fields.size(); ++i) {
-      FieldInfo f = fields.get(i);
+      PropertyDescriptor f = fields.get(i);
       if (lastFieldNumber == f.fieldNumber) {
         // Disallow duplicate field numbers.
         throw new RuntimeException("Duplicate field number: " + f.fieldNumber);
@@ -130,13 +144,14 @@ public final class AsmSchemaFactory implements SchemaFactory {
 
   private static final class WriteToGenerator {
     private final MethodVisitor mv;
+
     WriteToGenerator(ClassVisitor cv) {
       mv = cv.visitMethod(ACC_PUBLIC, "writeTo", WRITE_TO_DESCRIPTOR, null, null);
       mv.visitCode();
     }
 
-    void addField(FieldInfo field, long offset) {
-      FIELD_PROCESSORS[field.fieldType.ordinal()].write(mv, field.fieldNumber, offset);
+    void addField(PropertyDescriptor field, long offset) {
+      FIELD_PROCESSORS[field.type.ordinal()].write(mv, field.fieldNumber, offset);
     }
 
     void end() {
@@ -155,7 +170,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
     private final boolean tableSwitch;
     private final int lo;
 
-    MergeFromGenerator(ClassVisitor cv, List<FieldInfo> fields) {
+    MergeFromGenerator(ClassVisitor cv, List<PropertyDescriptor> fields) {
       mv = cv.visitMethod(ACC_PUBLIC, "mergeFrom", MERGE_FROM_DESCRIPTOR, null, null);
       mv.visitCode();
 
@@ -163,8 +178,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       startLabel = new Label();
       endLabel = new Label();
       defaultLabel = new Label();
-      mv.visitLabel(startLabel);
-      mv.visitFrame(F_SAME, 0, null, 0, null);
+      visitLabel(startLabel);
 
       // Get the field number form the reader.
       callReader(mv, "fieldNumber", "()I");
@@ -179,10 +193,10 @@ public final class AsmSchemaFactory implements SchemaFactory {
 
       // Load the field number again for the switch.
       mv.visitVarInsn(ILOAD, FIELD_NUMBER_INDEX);
-      final int numFields = fields.size();
       tableSwitch = SchemaUtil.shouldUseTableSwitch(fields);
+      final int numFields = fields.size();
       if (tableSwitch) {
-        // Tableswitch
+        // Tableswitch...
 
         // Determine the number of labels (i.e. cases).
         lo = fields.get(0).fieldNumber;
@@ -202,7 +216,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
         // Create the switch statement.
         mv.visitTableSwitchInsn(lo, hi, defaultLabel, labels);
       } else {
-        // Lookupswitch
+        // Lookupswitch...
 
         // Create the keys and labels.
         lo = -1;
@@ -219,33 +233,43 @@ public final class AsmSchemaFactory implements SchemaFactory {
       }
     }
 
-    void addField(FieldInfo field, int fieldIndex, long offset) {
+    void addField(PropertyDescriptor field, int fieldIndex, long offset) {
       if (tableSwitch) {
-          // Tableswitch: Label index is the field number.
-          mv.visitLabel(labels[field.fieldNumber - lo]);
+        addTableSwitchCase(field, offset);
       } else {
-          // Lookupswitch: Label index is field index.
-          mv.visitLabel(labels[fieldIndex]);
+        addLookupSwitchCase(field, fieldIndex, offset);
       }
-      mv.visitFrame(F_SAME, 0, null, 0, null);
-      int processorIndex = field.fieldType.ordinal();
-      FIELD_PROCESSORS[processorIndex].read(mv, offset);
+    }
+
+    void addTableSwitchCase(PropertyDescriptor field, long offset) {
+      // Tableswitch: Label index is the field number.
+      visitLabel(labels[field.fieldNumber - lo]);
+      FIELD_PROCESSORS[field.type.ordinal()].read(mv, offset);
+      mv.visitJumpInsn(GOTO, startLabel);
+    }
+
+    void addLookupSwitchCase(PropertyDescriptor field, int fieldIndex, long offset) {
+      // Lookupswitch: Label index is field index.
+      visitLabel(labels[fieldIndex]);
+      FIELD_PROCESSORS[field.type.ordinal()].read(mv, offset);
       mv.visitJumpInsn(GOTO, startLabel);
     }
 
     void end() {
       // Default case: skip the unknown field and check for done.
-      mv.visitLabel(defaultLabel);
-      mv.visitFrame(F_SAME, 0, null, 0, null);
+      visitLabel(defaultLabel);
       callReader(mv, "skipField", "()Z");
       mv.visitJumpInsn(IFNE, startLabel);
 
-      // Finish the method.
-      mv.visitLabel(endLabel);
-      mv.visitFrame(F_SAME, 0, null, 0, null);
+      visitLabel(endLabel);
       mv.visitInsn(RETURN);
       mv.visitMaxs(4, 4);
       mv.visitEnd();
+    }
+
+    private void visitLabel(Label label) {
+      mv.visitLabel(label);
+      mv.visitFrame(F_SAME, 0, null, 0, null);
     }
   }
 
@@ -479,7 +503,6 @@ public final class AsmSchemaFactory implements SchemaFactory {
   }
 
   private static final class FieldProcessor {
-    private final FieldType fieldType;
     private final String writeMethodName;
     private final String readMethodName;
     private final WriteType writeType;
@@ -491,12 +514,11 @@ public final class AsmSchemaFactory implements SchemaFactory {
       LIST
     }
 
-    FieldProcessor(FieldType fieldType) {
-      this.fieldType = fieldType;
-      JavaType jtype = fieldType.getJavaType();
+    FieldProcessor(PropertyType propertyType) {
+      JavaType jtype = propertyType.getJavaType();
       WriteType writeType = (jtype == JavaType.LIST) ?
               WriteType.LIST : (jtype == JavaType.ENUM) ? WriteType.ENUM : WriteType.STANDARD;
-      switch (fieldType) {
+      switch (propertyType) {
         case DOUBLE:
           writeMethodName = "unsafeWriteDouble";
           readMethodName = "unsafeReadDouble";
@@ -569,15 +591,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
           writeMethodName = "unsafeWriteDoubleList";
           readMethodName = "unsafeReadDoubleList";
           break;
-        case PACKED_DOUBLE_LIST:
-          writeMethodName = "unsafeWriteDoubleList";
-          readMethodName = "unsafeReadDoubleList";
-          break;
         case FLOAT_LIST:
-          writeMethodName = "unsafeWriteFloatList";
-          readMethodName = "unsafeReadFloatList";
-          break;
-        case PACKED_FLOAT_LIST:
           writeMethodName = "unsafeWriteFloatList";
           readMethodName = "unsafeReadFloatList";
           break;
@@ -585,15 +599,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
           writeMethodName = "unsafeWriteInt64List";
           readMethodName = "unsafeReadInt64List";
           break;
-        case PACKED_INT64_LIST:
-          writeMethodName = "unsafeWriteInt64List";
-          readMethodName = "unsafeReadInt64List";
-          break;
         case UINT64_LIST:
-          writeMethodName = "unsafeWriteUInt64List";
-          readMethodName = "unsafeReadUInt64List";
-          break;
-        case PACKED_UINT64_LIST:
           writeMethodName = "unsafeWriteUInt64List";
           readMethodName = "unsafeReadUInt64List";
           break;
@@ -601,15 +607,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
           writeMethodName = "unsafeWriteInt32List";
           readMethodName = "unsafeReadInt32List";
           break;
-        case PACKED_INT32_LIST:
-          writeMethodName = "unsafeWriteInt32List";
-          readMethodName = "unsafeReadInt32List";
-          break;
         case FIXED64_LIST:
-          writeMethodName = "unsafeWriteFixed64List";
-          readMethodName = "unsafeReadFixed64List";
-          break;
-        case PACKED_FIXED64_LIST:
           writeMethodName = "unsafeWriteFixed64List";
           readMethodName = "unsafeReadFixed64List";
           break;
@@ -617,15 +615,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
           writeMethodName = "unsafeWriteFixed32List";
           readMethodName = "unsafeReadFixed32List";
           break;
-        case PACKED_FIXED32_LIST:
-          writeMethodName = "unsafeWriteFixed32List";
-          readMethodName = "unsafeReadFixed32List";
-          break;
         case BOOL_LIST:
-          writeMethodName = "unsafeWriteBoolList";
-          readMethodName = "unsafeReadBoolList";
-          break;
-        case PACKED_BOOL_LIST:
           writeMethodName = "unsafeWriteBoolList";
           readMethodName = "unsafeReadBoolList";
           break;
@@ -648,16 +638,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
           writeMethodName = "unsafeWriteUInt32List";
           readMethodName = "unsafeReadUInt32List";
           break;
-        case PACKED_UINT32_LIST:
-          writeMethodName = "unsafeWriteUInt32List";
-          readMethodName = "unsafeReadUInt32List";
-          break;
         case ENUM_LIST:
-          writeMethodName = "unsafeWriteEnumList";
-          readMethodName = "unsafeReadEnumList";
-          writeType = WriteType.ENUM_LIST;
-          break;
-        case PACKED_ENUM_LIST:
           writeMethodName = "unsafeWriteEnumList";
           readMethodName = "unsafeReadEnumList";
           writeType = WriteType.ENUM_LIST;
@@ -666,15 +647,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
           writeMethodName = "unsafeWriteSFixed32List";
           readMethodName = "unsafeReadSFixed32List";
           break;
-        case PACKED_SFIXED32_LIST:
-          writeMethodName = "unsafeWriteSFixed32List";
-          readMethodName = "unsafeReadSFixed32List";
-          break;
         case SFIXED64_LIST:
-          writeMethodName = "unsafeWriteSFixed64List";
-          readMethodName = "unsafeReadSFixed64List";
-          break;
-        case PACKED_SFIXED64_LIST:
           writeMethodName = "unsafeWriteSFixed64List";
           readMethodName = "unsafeReadSFixed64List";
           break;
@@ -682,20 +655,12 @@ public final class AsmSchemaFactory implements SchemaFactory {
           writeMethodName = "unsafeWriteSInt32List";
           readMethodName = "unsafeReadSInt32List";
           break;
-        case PACKED_SINT32_LIST:
-          writeMethodName = "unsafeWriteSInt32List";
-          readMethodName = "unsafeReadSInt32List";
-          break;
         case SINT64_LIST:
           writeMethodName = "unsafeWriteSInt64List";
           readMethodName = "unsafeReadSInt64List";
           break;
-        case PACKED_SINT64_LIST:
-          writeMethodName = "unsafeWriteSInt64List";
-          readMethodName = "unsafeReadSInt64List";
-          break;
         default:
-          throw new IllegalArgumentException("Unsupported FieldType: " + fieldType);
+          throw new IllegalArgumentException("Unsupported FieldType: " + propertyType);
       }
       this.writeType = writeType;
     }
@@ -748,21 +713,19 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitLdcInsn(fieldNumber);
       mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
       mv.visitLdcInsn(offset);
-      mv.visitInsn(fieldType.isPacked() ? ICONST_1 : ICONST_0);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
       mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, writeMethodName,
-              "(ILjava/lang/Object;JZLio/nproto/Writer;)V", false);
+              "(ILjava/lang/Object;JLio/nproto/Writer;)V", false);
     }
 
     private void unsafeWriteEnumList(MethodVisitor mv, int fieldNumber, long offset) {
       mv.visitLdcInsn(fieldNumber);
       mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
       mv.visitLdcInsn(offset);
-      mv.visitInsn(fieldType.isPacked() ? ICONST_1 : ICONST_0);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
       mv.visitLdcInsn(ENUM_TYPE);
       mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, writeMethodName,
-              "(ILjava/lang/Object;JZLio/nproto/Writer;Ljava/lang/Class;)V", false);
+              "(ILjava/lang/Object;JLio/nproto/Writer;Ljava/lang/Class;)V", false);
     }
   }
 }

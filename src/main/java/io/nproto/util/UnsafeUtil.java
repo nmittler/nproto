@@ -1,4 +1,6 @@
-package io.nproto;
+package io.nproto.util;
+
+import io.nproto.Internal;
 
 import sun.misc.Unsafe;
 

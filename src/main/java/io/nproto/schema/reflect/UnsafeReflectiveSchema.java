@@ -1,17 +1,18 @@
 package io.nproto.schema.reflect;
 
-import static io.nproto.UnsafeUtil.fieldOffset;
+import static io.nproto.util.UnsafeUtil.fieldOffset;
 
 import io.nproto.ByteString;
-import io.nproto.FieldType;
+import io.nproto.descriptor.PropertyType;
 import io.nproto.JavaType;
 import io.nproto.Reader;
-import io.nproto.UnsafeUtil;
+import io.nproto.descriptor.BeanDescriptor;
+import io.nproto.util.UnsafeUtil;
 import io.nproto.Writer;
 import io.nproto.schema.Field;
 import io.nproto.schema.Schema;
-import io.nproto.schema.SchemaUtil;
-import io.nproto.schema.SchemaUtil.FieldInfo;
+import io.nproto.util.SchemaUtil;
+import io.nproto.descriptor.PropertyDescriptor;
 
 import sun.plugin.dom.exception.InvalidStateException;
 
@@ -33,25 +34,21 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
   // Array that holds lazy entries for fields used for iteration.
   private WeakReference<Field[]> fields;
 
-  static <T> UnsafeReflectiveSchema<T> newInstance(Class<T> messageType) {
-    return new UnsafeReflectiveSchema<T>(messageType);
-  }
-
-  private UnsafeReflectiveSchema(Class<T> messageType) {
-    List<FieldInfo> fieldInfos = SchemaUtil.getAllFieldInfo(messageType);
-    final int numFields = fieldInfos.size();
-    fieldMap = SchemaUtil.shouldUseTableSwitch(fieldInfos) ?
-            new TableFieldMap(fieldInfos) : new LookupFieldMap(fieldInfos);
+  UnsafeReflectiveSchema(BeanDescriptor descriptor) {
+    List<PropertyDescriptor> protoProperties = descriptor.getPropertyDescriptors();
+    final int numFields = protoProperties.size();
+    fieldMap = SchemaUtil.shouldUseTableSwitch(protoProperties) ?
+            new TableFieldMap(protoProperties) : new LookupFieldMap(protoProperties);
     data = new long[numFields * ENTRIES_PER_FIELD];
     int lastFieldNumber = Integer.MAX_VALUE;
     long dataPos = DATA_OFFSET;
     for (int i = 0; i < numFields; ++i) {
-      FieldInfo f = fieldInfos.get(i);
+      PropertyDescriptor f = protoProperties.get(i);
       if (f.fieldNumber == lastFieldNumber) {
         throw new RuntimeException("Duplicate field number: " + f.fieldNumber);
       }
       fieldMap.loadField(f, i, dataPos);
-      UnsafeUtil.putLong(data, dataPos, (((long) f.fieldType.id()) << 32) | f.fieldNumber);
+      UnsafeUtil.putLong(data, dataPos, (((long) f.type.id()) << 32) | f.fieldNumber);
       UnsafeUtil.putLong(data, dataPos + LONG_LENGTH, fieldOffset(f.field));
       dataPos += FIELD_LENGTH;
     }
@@ -123,52 +120,28 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
           SchemaUtil.unsafeWriteSInt64(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 18: //DOUBLE_LIST:
-          SchemaUtil.unsafeWriteDoubleList(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 35: //PACKED_DOUBLE_LIST:
-          SchemaUtil.unsafeWriteDoubleList(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteDoubleList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 19: //FLOAT_LIST:
-          SchemaUtil.unsafeWriteFloatList(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 36: //PACKED_FLOAT_LIST:
-          SchemaUtil.unsafeWriteFloatList(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteFloatList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 20: //INT64_LIST:
-          SchemaUtil.unsafeWriteInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 37: //PACKED_INT64_LIST:
-          SchemaUtil.unsafeWriteInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 21: //UINT64_LIST:
-          SchemaUtil.unsafeWriteUInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 38: //PACKED_UINT64_LIST:
-          SchemaUtil.unsafeWriteUInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteUInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 22: //INT32_LIST:
-          SchemaUtil.unsafeWriteInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 39: //PACKED_INT32_LIST:
-          SchemaUtil.unsafeWriteInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 23: //FIXED64_LIST:
-          SchemaUtil.unsafeWriteFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 40: //PACKED_FIXED64_LIST:
-          SchemaUtil.unsafeWriteFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 24: //FIXED32_LIST:
-          SchemaUtil.unsafeWriteFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 41: //PACKED_FIXED32_LIST:
-          SchemaUtil.unsafeWriteFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 25: //BOOL_LIST:
-          SchemaUtil.unsafeWriteBoolList(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 42: //PACKED_BOOL_LIST:
-          SchemaUtil.unsafeWriteBoolList(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteBoolList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 26: //STRING_LIST:
           SchemaUtil.unsafeWriteStringList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
@@ -180,40 +153,22 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
           SchemaUtil.unsafeWriteBytesList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 29: //UINT32_LIST:
-          SchemaUtil.unsafeWriteUInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 43: //PACKED_UINT32_LIST:
-          SchemaUtil.unsafeWriteUInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteUInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 30: //ENUM_LIST:
-          SchemaUtil.unsafeWriteEnumList(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer, Enum.class);
-          break;
-        case 44: //PACKED_ENUM_LIST:
-          SchemaUtil.unsafeWriteEnumList(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer, Enum.class);
+          SchemaUtil.unsafeWriteEnumList(fieldNumber, message, getLong(pos + LONG_LENGTH), writer, Enum.class);
           break;
         case 31: //SFIXED32_LIST:
-          SchemaUtil.unsafeWriteSFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 45: //PACKED_SFIXED32_LIST:
-          SchemaUtil.unsafeWriteSFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteSFixed32List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 32: //SFIXED64_LIST:
-          SchemaUtil.unsafeWriteSFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 46: //PACKED_SFIXED64_LIST:
-          SchemaUtil.unsafeWriteSFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteSFixed64List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 33: //SINT32_LIST:
-          SchemaUtil.unsafeWriteSInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 47: //PACKED_SINT32_LIST:
-          SchemaUtil.unsafeWriteSInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteSInt32List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         case 34: //SINT64_LIST:
-          SchemaUtil.unsafeWriteSInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), false, writer);
-          break;
-        case 48: //PACKED_SINT64_LIST:
-          SchemaUtil.unsafeWriteSInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), true, writer);
+          SchemaUtil.unsafeWriteSInt64List(fieldNumber, message, getLong(pos + LONG_LENGTH), writer);
           break;
         default:
           throw new IllegalArgumentException("Unsupported fieldType: " + getFieldType(getLong(pos)));
@@ -295,49 +250,25 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
       case 18: //DOUBLE_LIST:
         SchemaUtil.unsafeReadDoubleList(message, getLong(pos + LONG_LENGTH), reader);
         break;
-      case 35: //PACKED_DOUBLE_LIST:
-        SchemaUtil.unsafeReadDoubleList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
       case 19: //FLOAT_LIST:
-        SchemaUtil.unsafeReadFloatList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 36: //PACKED_FLOAT_LIST:
         SchemaUtil.unsafeReadFloatList(message, getLong(pos + LONG_LENGTH), reader);
         break;
       case 20: //INT64_LIST:
         SchemaUtil.unsafeReadInt64List(message, getLong(pos + LONG_LENGTH), reader);
         break;
-      case 37: //PACKED_INT64_LIST:
-        SchemaUtil.unsafeReadInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
       case 21: //UINT64_LIST:
-        SchemaUtil.unsafeReadUInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 38: //PACKED_UINT64_LIST:
         SchemaUtil.unsafeReadUInt64List(message, getLong(pos + LONG_LENGTH), reader);
         break;
       case 22: //INT32_LIST:
         SchemaUtil.unsafeReadInt32List(message, getLong(pos + LONG_LENGTH), reader);
         break;
-      case 39: //PACKED_INT32_LIST:
-        SchemaUtil.unsafeReadInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
       case 23: //FIXED64_LIST:
-        SchemaUtil.unsafeReadFixed64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 40: //PACKED_FIXED64_LIST:
         SchemaUtil.unsafeReadFixed64List(message, getLong(pos + LONG_LENGTH), reader);
         break;
       case 24: //FIXED32_LIST:
         SchemaUtil.unsafeReadFixed32List(message, getLong(pos + LONG_LENGTH), reader);
         break;
-      case 41: //PACKED_FIXED32_LIST:
-        SchemaUtil.unsafeReadFixed32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
       case 25: //BOOL_LIST:
-        SchemaUtil.unsafeReadBoolList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 42: //PACKED_BOOL_LIST:
         SchemaUtil.unsafeReadBoolList(message, getLong(pos + LONG_LENGTH), reader);
         break;
       case 26: //STRING_LIST:
@@ -352,37 +283,19 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
       case 29: //UINT32_LIST:
         SchemaUtil.unsafeReadUInt32List(message, getLong(pos + LONG_LENGTH), reader);
         break;
-      case 43: //PACKED_UINT32_LIST:
-        SchemaUtil.unsafeReadUInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
       case 30: //ENUM_LIST:
-        SchemaUtil.unsafeReadEnumList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 44: //PACKED_ENUM_LIST:
         SchemaUtil.unsafeReadEnumList(message, getLong(pos + LONG_LENGTH), reader);
         break;
       case 31: //SFIXED32_LIST:
         SchemaUtil.unsafeReadSFixed32List(message, getLong(pos + LONG_LENGTH), reader);
         break;
-      case 45: //PACKED_SFIXED32_LIST:
-        SchemaUtil.unsafeReadSFixed32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
       case 32: //SFIXED64_LIST:
-        SchemaUtil.unsafeReadSFixed64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 46: //PACKED_SFIXED64_LIST:
         SchemaUtil.unsafeReadSFixed64List(message, getLong(pos + LONG_LENGTH), reader);
         break;
       case 33: //SINT32_LIST:
         SchemaUtil.unsafeReadSInt32List(message, getLong(pos + LONG_LENGTH), reader);
         break;
-      case 47: //PACKED_SINT32_LIST:
-        SchemaUtil.unsafeReadSInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
       case 34: //SINT64_LIST:
-        SchemaUtil.unsafeReadSInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 48: //PACKED_SINT64_LIST:
         SchemaUtil.unsafeReadSInt64List(message, getLong(pos + LONG_LENGTH), reader);
         break;
       default:
@@ -407,8 +320,8 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     return temp;
   }
 
-  private static FieldType getFieldType(long data) {
-    return FieldType.forId(getFieldTypeId(data));
+  private static PropertyType getFieldType(long data) {
+    return PropertyType.forId(getFieldTypeId(data));
   }
 
   private static int getFieldNumber(long data) {
@@ -462,7 +375,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     }
 
     @Override
-    public FieldType type() {
+    public PropertyType type() {
       return getFieldType(data[dataPos]);
     }
 
@@ -547,14 +460,14 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
 
   private static abstract class FieldMap {
     abstract long getDataPos(int fieldNumber);
-    abstract void loadField(FieldInfo field, int fieldIndex, long dataPos);
+    abstract void loadField(PropertyDescriptor field, int fieldIndex, long dataPos);
   }
 
   private static final class TableFieldMap extends FieldMap {
     private final int min;
     private final long[] positions;
 
-    TableFieldMap(List<FieldInfo> fields) {
+    TableFieldMap(List<PropertyDescriptor> fields) {
       min = fields.get(0).fieldNumber;
       int max = fields.get(fields.size() - 1).fieldNumber;
       int numPositions = (max - min) + 1;
@@ -562,7 +475,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     }
 
     @Override
-    void loadField(FieldInfo field, int fieldIndex, long dataPos) {
+    void loadField(PropertyDescriptor field, int fieldIndex, long dataPos) {
       positions[field.fieldNumber - min] = dataPos;
     }
 
@@ -576,7 +489,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     private final int[] fieldNumbers;
     private final long[] positions;
 
-    LookupFieldMap(List<FieldInfo> fields) {
+    LookupFieldMap(List<PropertyDescriptor> fields) {
       int numFields = fields.size();
       fieldNumbers = new int[numFields];
       positions = new long[numFields];
@@ -587,7 +500,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     }
 
     @Override
-    void loadField(FieldInfo field, int fieldIndex, long dataPos) {
+    void loadField(PropertyDescriptor field, int fieldIndex, long dataPos) {
       fieldNumbers[fieldIndex] = field.fieldNumber;
       positions[fieldIndex] = dataPos;
     }

@@ -1,18 +1,20 @@
-package io.nproto.schema;
+package io.nproto.benchmark;
 
 import io.nproto.ByteString;
 import io.nproto.PojoMessage;
 import io.nproto.Reader;
 import io.nproto.Writer;
+import io.nproto.schema.Schema;
+import io.nproto.schema.SchemaFactory;
 import io.nproto.schema.gen.AsmSchemaFactory;
 import io.nproto.schema.handwritten.HandwrittenSchemaFactory;
 import io.nproto.schema.reflect.UnsafeReflectiveSchemaFactory;
+import io.nproto.util.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -27,7 +29,7 @@ public class SchemaBenchmark {
     ASM(new AsmSchemaFactory()) {
       @Override
       byte[] createSchema() {
-        return AsmSchemaFactory.createSchemaClass(PojoMessage.class);
+        return ((AsmSchemaFactory) factory).createSchemaClass(PojoMessage.class);
       }
     };
 
@@ -48,8 +50,8 @@ public class SchemaBenchmark {
       return factory.createSchema(PojoMessage.class);
     }
 
-    private final SchemaFactory factory;
-    private final Schema<PojoMessage> schema;
+    final SchemaFactory factory;
+    final Schema<PojoMessage> schema;
   }
 
   @Param
@@ -182,55 +184,55 @@ public class SchemaBenchmark {
     }
 
     @Override
-    public void writeInt32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeInt32List(int fieldNumber, List<Integer> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeFixed32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeFixed32List(int fieldNumber, List<Integer> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeInt64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeInt64List(int fieldNumber, List<Long> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeUInt64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeUInt64List(int fieldNumber, List<Long> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeFixed64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeFixed64List(int fieldNumber, List<Long> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeFloatList(int fieldNumber, boolean packed, List<Float> value) {
+    public void writeFloatList(int fieldNumber, List<Float> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeDoubleList(int fieldNumber, boolean packed, List<Double> value) {
+    public void writeDoubleList(int fieldNumber, List<Double> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public <E extends Enum<E>> void writeEnumList(int fieldNumber, boolean packed, List<E> value) {
+    public <E extends Enum<E>> void writeEnumList(int fieldNumber, List<E> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeBoolList(int fieldNumber, boolean packed, List<Boolean> value) {
+    public void writeBoolList(int fieldNumber, List<Boolean> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
@@ -248,31 +250,31 @@ public class SchemaBenchmark {
     }
 
     @Override
-    public void writeUInt32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeUInt32List(int fieldNumber, List<Integer> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeSFixed32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeSFixed32List(int fieldNumber, List<Integer> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeSFixed64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeSFixed64List(int fieldNumber, List<Long> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeSInt32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeSInt32List(int fieldNumber, List<Integer> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }
 
     @Override
-    public void writeSInt64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeSInt64List(int fieldNumber, List<Long> value) {
       bh.consume(fieldNumber);
       bh.consume(value);
     }

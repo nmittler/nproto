@@ -1,15 +1,18 @@
-package io.nproto.schema;
+package io.nproto.util;
 
 import io.nproto.ByteString;
+import io.nproto.Internal;
 import io.nproto.JavaType;
 import io.nproto.PojoMessage;
 import io.nproto.Reader;
-import io.nproto.schema.SchemaUtil.FieldInfo;
+import io.nproto.descriptor.AnnotationBeanDescriptorFactory;
+import io.nproto.descriptor.PropertyDescriptor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+@Internal
 public final class TestUtil {
   private TestUtil() {
   }
@@ -163,8 +166,10 @@ public final class TestUtil {
 
   private static FieldValue[] fieldValuesFor(Object msg) {
     List<FieldValue> fieldValues = new ArrayList<FieldValue>();
-    List<FieldInfo> fieldInfos = SchemaUtil.getAllFieldInfo(msg.getClass());
-    for (FieldInfo info : fieldInfos) {
+    List<PropertyDescriptor> protoProperties =
+            AnnotationBeanDescriptorFactory.getInstance().descriptorFor(msg.getClass())
+                    .getPropertyDescriptors();
+    for (PropertyDescriptor info : protoProperties) {
       Object value;
       try {
         value = info.field.get(msg);
@@ -183,7 +188,7 @@ public final class TestUtil {
     return fieldValues.toArray(new FieldValue[fieldValues.size()]);
   }
 
-  private static void addFieldValue(FieldInfo info, Object value, List<FieldValue> fieldValues) {
+  private static void addFieldValue(PropertyDescriptor info, Object value, List<FieldValue> fieldValues) {
     if (value instanceof Integer && value != Integer.valueOf(0)) {
       fieldValues.add(new FieldValue(info.fieldNumber, JavaType.INT, value));
     } else if (value instanceof Long && value != Long.valueOf(0)) {

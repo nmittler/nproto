@@ -1,18 +1,12 @@
-package io.nproto.schema;
+package io.nproto.util;
 
 import io.nproto.ByteString;
-import io.nproto.FieldType;
 import io.nproto.Internal;
-import io.nproto.ProtoField;
 import io.nproto.Reader;
-import io.nproto.UnsafeUtil;
 import io.nproto.Writer;
-import io.nproto.util.IntToIntHashMap;
+import io.nproto.descriptor.PropertyDescriptor;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Internal
@@ -122,87 +116,87 @@ public final class SchemaUtil {
     }
   }
 
-  public static void writeDoubleList(int fieldNumber, List<Double> value, boolean packed, Writer writer) {
+  public static void writeDoubleList(int fieldNumber, List<Double> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeDoubleList(fieldNumber, packed, value);
+      writer.writeDoubleList(fieldNumber, value);
     }
   }
 
-  public static void writeFloatList(int fieldNumber, List<Float> value, boolean packed, Writer writer) {
+  public static void writeFloatList(int fieldNumber, List<Float> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeFloatList(fieldNumber, packed, value);
+      writer.writeFloatList(fieldNumber, value);
     }
   }
 
-  public static void writeInt64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
+  public static void writeInt64List(int fieldNumber, List<Long> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeInt64List(fieldNumber, packed, value);
+      writer.writeInt64List(fieldNumber, value);
     }
   }
 
-  public static void writeUInt64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
+  public static void writeUInt64List(int fieldNumber, List<Long> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeUInt64List(fieldNumber, packed, value);
+      writer.writeUInt64List(fieldNumber, value);
     }
   }
 
-  public static void writeSInt64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
+  public static void writeSInt64List(int fieldNumber, List<Long> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeSInt64List(fieldNumber, packed, value);
+      writer.writeSInt64List(fieldNumber, value);
     }
   }
 
-  public static void writeFixed64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
+  public static void writeFixed64List(int fieldNumber, List<Long> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeFixed64List(fieldNumber, packed, value);
+      writer.writeFixed64List(fieldNumber, value);
     }
   }
 
-  public static void writeSFixed64List(int fieldNumber, List<Long> value, boolean packed, Writer writer) {
+  public static void writeSFixed64List(int fieldNumber, List<Long> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeSFixed64List(fieldNumber, packed, value);
+      writer.writeSFixed64List(fieldNumber, value);
     }
   }
 
-  public static void writeInt32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
+  public static void writeInt32List(int fieldNumber, List<Integer> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeInt32List(fieldNumber, packed, value);
+      writer.writeInt32List(fieldNumber, value);
     }
   }
 
-  public static void writeUInt32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
+  public static void writeUInt32List(int fieldNumber, List<Integer> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeUInt32List(fieldNumber, packed, value);
+      writer.writeUInt32List(fieldNumber, value);
     }
   }
 
-  public static void writeSInt32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
+  public static void writeSInt32List(int fieldNumber, List<Integer> value, Writer writer) {
     if (value != null) {
-      writer.writeSInt32List(fieldNumber, packed, value);
+      writer.writeSInt32List(fieldNumber, value);
     }
   }
 
-  public static void writeFixed32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
+  public static void writeFixed32List(int fieldNumber, List<Integer> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeFixed32List(fieldNumber, packed, value);
+      writer.writeFixed32List(fieldNumber, value);
     }
   }
 
-  public static void writeSFixed32List(int fieldNumber, List<Integer> value, boolean packed, Writer writer) {
+  public static void writeSFixed32List(int fieldNumber, List<Integer> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeSFixed32List(fieldNumber, packed, value);
+      writer.writeSFixed32List(fieldNumber, value);
     }
   }
 
-  private static <E extends Enum<E>> void writeEnumList(int fieldNumber, List<E> value, boolean packed, Writer writer) {
+  private static <E extends Enum<E>> void writeEnumList(int fieldNumber, List<E> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeEnumList(fieldNumber, packed, value);
+      writer.writeEnumList(fieldNumber, value);
     }
   }
 
-  public static void writeBoolList(int fieldNumber, List<Boolean> value, boolean packed, Writer writer) {
+  public static void writeBoolList(int fieldNumber, List<Boolean> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
-      writer.writeBoolList(fieldNumber, packed, value);
+      writer.writeBoolList(fieldNumber, value);
     }
   }
 
@@ -293,73 +287,73 @@ public final class SchemaUtil {
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteDoubleList(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeDoubleList(fieldNumber, (List<Double>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteDoubleList(int fieldNumber, Object message, long offset, Writer writer) {
+    writeDoubleList(fieldNumber, (List<Double>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteFloatList(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeFloatList(fieldNumber, (List<Float>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteFloatList(int fieldNumber, Object message, long offset, Writer writer) {
+    writeFloatList(fieldNumber, (List<Float>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteInt64List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeInt64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteInt64List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeInt64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteUInt64List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeUInt64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteUInt64List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeUInt64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteSInt64List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeSInt64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteSInt64List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeSInt64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteFixed64List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeFixed64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteFixed64List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeFixed64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteSFixed64List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeSFixed64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteSFixed64List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeSFixed64List(fieldNumber, (List<Long>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteInt32List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeInt32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteInt32List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeInt32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteUInt32List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeUInt32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteUInt32List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeUInt32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteSInt32List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeSInt32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteSInt32List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeSInt32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteFixed32List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeFixed32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteFixed32List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeFixed32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteSFixed32List(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeSFixed32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteSFixed32List(int fieldNumber, Object message, long offset, Writer writer) {
+    writeSFixed32List(fieldNumber, (List<Integer>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static <E extends Enum<E>> void unsafeWriteEnumList(int fieldNumber, Object message, long offset, boolean packed, Writer writer, Class<E> enumClasss) {
-    writeEnumList(fieldNumber, (List<E>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static <E extends Enum<E>> void unsafeWriteEnumList(int fieldNumber, Object message, long offset, Writer writer, Class<E> enumClasss) {
+    writeEnumList(fieldNumber, (List<E>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
-  public static void unsafeWriteBoolList(int fieldNumber, Object message, long offset, boolean packed, Writer writer) {
-    writeBoolList(fieldNumber, (List<Boolean>) UnsafeUtil.getObject(message, offset), packed, writer);
+  public static void unsafeWriteBoolList(int fieldNumber, Object message, long offset, Writer writer) {
+    writeBoolList(fieldNumber, (List<Boolean>) UnsafeUtil.getObject(message, offset), writer);
   }
 
   @SuppressWarnings("unchecked")
@@ -523,35 +517,10 @@ public final class SchemaUtil {
     return list;
   }
 
-  public static final class FieldInfo implements Comparable<FieldInfo> {
-    public final Field field;
-    public final FieldType fieldType;
-    public final int fieldNumber;
-
-    FieldInfo(Field field, ProtoField protoField) {
-      this.field = field;
-      this.fieldType = FieldType.forField(field, protoField);
-      this.fieldNumber = protoField.number();
-    }
-
-    @Override
-    public int compareTo(FieldInfo o) {
-      return fieldNumber - o.fieldNumber;
-    }
-  }
-
-  public static List<FieldInfo> getAllFieldInfo(Class<?> clazz) {
-    List<FieldInfo> fields = new ArrayList<FieldInfo>();
-    getAllFieldInfo(clazz, fields);
-    // Now order them in ascending order by their field number.
-    Collections.sort(fields);
-    return fields;
-  }
-
   /**
    * Determines whether to issue tableswitch or lookupswitch for the mergeFrom method.
    */
-  public static boolean shouldUseTableSwitch(List<FieldInfo> fields) {
+  public static boolean shouldUseTableSwitch(List<PropertyDescriptor> fields) {
     // Determine whether to issue a tableswitch or a lookupswitch
     // instruction.
     if (fields.isEmpty()) {
@@ -564,19 +533,5 @@ public final class SchemaUtil {
     long lookup_space_cost = 3 + 2 * (long) fields.size();
     long lookup_time_cost = fields.size();
     return table_space_cost + 3 * table_time_cost <= lookup_space_cost + 3 * lookup_time_cost;
-  }
-
-  private static void getAllFieldInfo(Class<?> clazz, List<FieldInfo> fields) {
-    if (Object.class != clazz.getSuperclass()) {
-      getAllFieldInfo(clazz.getSuperclass(), fields);
-    }
-
-    for (Field f : clazz.getDeclaredFields()) {
-      int mod = f.getModifiers();
-      ProtoField protoField = f.getAnnotation(ProtoField.class);
-      if (!Modifier.isStatic(mod) && !Modifier.isTransient(mod) && protoField != null) {
-        fields.add(new FieldInfo(f, protoField));
-      }
-    }
   }
 }

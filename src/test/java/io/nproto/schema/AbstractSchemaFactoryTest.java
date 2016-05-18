@@ -4,10 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import io.nproto.ByteString;
-import io.nproto.FieldType;
+import io.nproto.descriptor.PropertyType;
 import io.nproto.PojoMessage;
 import io.nproto.Reader;
 import io.nproto.Writer;
+import io.nproto.util.TestUtil;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +34,7 @@ public abstract class AbstractSchemaFactoryTest {
     for(Field f : schema) {
       switch(f.number()) {
         case 1:
-          assertEquals(FieldType.ENUM, f.type());
+          assertEquals(PropertyType.ENUM, f.type());
           assertNull(f.enumValue(msg, PojoMessage.MyEnum.class));
           msg.enumField = PojoMessage.MyEnum.VALUE1;
           assertEquals(PojoMessage.MyEnum.VALUE1, f.enumValue(msg, PojoMessage.MyEnum.class));
@@ -203,47 +204,47 @@ public abstract class AbstractSchemaFactoryTest {
     }
 
     @Override
-    public void writeInt32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeInt32List(int fieldNumber, List<Integer> value) {
       System.err.println("NM: writeInt32List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeFixed32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeFixed32List(int fieldNumber, List<Integer> value) {
       System.err.println("NM: writeFixed32List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeInt64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeInt64List(int fieldNumber, List<Long> value) {
       System.err.println("NM: writeInt64List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeUInt64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeUInt64List(int fieldNumber, List<Long> value) {
       System.err.println("NM: writeUInt64List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeFixed64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeFixed64List(int fieldNumber, List<Long> value) {
       System.err.println("NM: writeFixed64List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeFloatList(int fieldNumber, boolean packed, List<Float> value) {
+    public void writeFloatList(int fieldNumber, List<Float> value) {
       System.err.println("NM: writeFloatList, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeDoubleList(int fieldNumber, boolean packed, List<Double> value) {
+    public void writeDoubleList(int fieldNumber, List<Double> value) {
       System.err.println("NM: writeDoubleList, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public <E extends Enum<E>> void writeEnumList(int fieldNumber, boolean packed, List<E> value) {
+    public <E extends Enum<E>> void writeEnumList(int fieldNumber, List<E> value) {
       System.err.println("NM: writeEnumList, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeBoolList(int fieldNumber, boolean packed, List<Boolean> value) {
+    public void writeBoolList(int fieldNumber, List<Boolean> value) {
       System.err.println("NM: writeBoolList, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
@@ -258,27 +259,27 @@ public abstract class AbstractSchemaFactoryTest {
     }
 
     @Override
-    public void writeUInt32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeUInt32List(int fieldNumber, List<Integer> value) {
       System.err.println("NM: writeUInt32List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeSFixed32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeSFixed32List(int fieldNumber, List<Integer> value) {
       System.err.println("NM: writeSFixed32List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeSFixed64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeSFixed64List(int fieldNumber, List<Long> value) {
       System.err.println("NM: writeSFixed64List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeSInt32List(int fieldNumber, boolean packed, List<Integer> value) {
+    public void writeSInt32List(int fieldNumber, List<Integer> value) {
       System.err.println("NM: writeSInt32List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 
     @Override
-    public void writeSInt64List(int fieldNumber, boolean packed, List<Long> value) {
+    public void writeSInt64List(int fieldNumber, List<Long> value) {
       System.err.println("NM: writeSInt64List, fieldNumber=" + fieldNumber + ", value=" + value);
     }
 

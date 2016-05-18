@@ -55,49 +55,49 @@ public final class PojoMessage {
   @ProtoField(number = 15, type = FieldType.MESSAGE)
   public Object messageField;
 
-  @ProtoField(number = 16, type = FieldType.ENUM, repeated = true, packed = true)
+  @ProtoField(number = 16, type = FieldType.ENUM)
   public List<MyEnum> enumListField;
 
-  @ProtoField(number = 17, type = FieldType.BOOL, repeated = true, packed = true)
+  @ProtoField(number = 17, type = FieldType.BOOL)
   public List<Boolean> boolListField;
 
-  @ProtoField(number = 18, type = FieldType.UINT32, repeated = true, packed = true)
+  @ProtoField(number = 18, type = FieldType.UINT32)
   public List<Integer> uint32ListField;
 
-  @ProtoField(number = 19, type = FieldType.INT32, repeated = true, packed = true)
+  @ProtoField(number = 19, type = FieldType.INT32)
   public List<Integer> int32ListField;
 
-  @ProtoField(number = 20, type = FieldType.SINT32, repeated = true, packed = true)
+  @ProtoField(number = 20, type = FieldType.SINT32)
   public List<Integer> sInt32ListField;
 
-  @ProtoField(number = 21, type = FieldType.FIXED32, repeated = true, packed = true)
+  @ProtoField(number = 21, type = FieldType.FIXED32)
   public List<Integer> fixedInt32ListField;
 
-  @ProtoField(number = 22, type = FieldType.SFIXED32, repeated = true, packed = true)
+  @ProtoField(number = 22, type = FieldType.SFIXED32)
   public List<Integer> sFixedInt32ListField;
 
-  @ProtoField(number = 23, type = FieldType.UINT64, repeated = true, packed = true)
+  @ProtoField(number = 23, type = FieldType.UINT64)
   public List<Long> uint64ListField;
 
-  @ProtoField(number = 24, type = FieldType.INT64, repeated = true, packed = true)
+  @ProtoField(number = 24, type = FieldType.INT64)
   public List<Long> int64ListField;
 
-  @ProtoField(number = 25, type = FieldType.SINT64, repeated = true, packed = true)
+  @ProtoField(number = 25, type = FieldType.SINT64)
   public List<Long> sInt64ListField;
 
-  @ProtoField(number = 26, type = FieldType.FIXED64, repeated = true, packed = true)
+  @ProtoField(number = 26, type = FieldType.FIXED64)
   public List<Long> fixedInt64ListField;
 
-  @ProtoField(number = 27, type = FieldType.SFIXED64, repeated = true, packed = true)
+  @ProtoField(number = 27, type = FieldType.SFIXED64)
   public List<Long> sFixedInt64ListField;
 
-  @ProtoField(number = 28, type = FieldType.STRING, repeated = true, packed = false)
+  @ProtoField(number = 28, type = FieldType.STRING)
   public List<String> stringListField;
 
-  @ProtoField(number = 29, type = FieldType.BYTES, repeated = true, packed = false)
+  @ProtoField(number = 29, type = FieldType.BYTES)
   public List<ByteString> bytesListField;
 
-  @ProtoField(number = 30, type = FieldType.MESSAGE, repeated = true, packed = false)
+  @ProtoField(number = 30, type = FieldType.MESSAGE)
   public List<Object> messageListField;
 
   @Override

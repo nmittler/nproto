@@ -12,6 +12,4 @@ import java.lang.annotation.Target;
 public @interface ProtoField {
   int number();
   WireFormat.FieldType type();
-  boolean repeated() default false;
-  boolean packed() default true;
 }

@@ -37,37 +37,37 @@ public interface Writer {
 
   void writeMessage(int fieldNumber, Object value);
 
-  void writeInt32List(int fieldNumber, boolean packed, List<Integer> list);
+  void writeInt32List(int fieldNumber, List<Integer> list);
 
-  void writeFixed32List(int fieldNumber, boolean packed, List<Integer> list);
+  void writeFixed32List(int fieldNumber, List<Integer> list);
 
-  void writeInt64List(int fieldNumber, boolean packed, List<Long> list);
+  void writeInt64List(int fieldNumber, List<Long> list);
 
-  void writeUInt64List(int fieldNumber, boolean packed, List<Long> list);
+  void writeUInt64List(int fieldNumber, List<Long> list);
 
-  void writeFixed64List(int fieldNumber, boolean packed, List<Long> list);
+  void writeFixed64List(int fieldNumber, List<Long> list);
 
-  void writeFloatList(int fieldNumber, boolean packed, List<Float> list);
+  void writeFloatList(int fieldNumber, List<Float> list);
 
-  void writeDoubleList(int fieldNumber, boolean packed, List<Double> list);
+  void writeDoubleList(int fieldNumber, List<Double> list);
 
-  <E extends Enum<E>> void writeEnumList(int fieldNumber, boolean packed, List<E> list);
+  <E extends Enum<E>> void writeEnumList(int fieldNumber, List<E> list);
 
-  void writeBoolList(int fieldNumber, boolean packed, List<Boolean> list);
+  void writeBoolList(int fieldNumber, List<Boolean> list);
 
   void writeStringList(int fieldNumber, List<String> list);
 
   void writeBytesList(int fieldNumber, List<ByteString> list);
 
-  void writeUInt32List(int fieldNumber, boolean packed, List<Integer> list);
+  void writeUInt32List(int fieldNumber, List<Integer> list);
 
-  void writeSFixed32List(int fieldNumber, boolean packed, List<Integer> list);
+  void writeSFixed32List(int fieldNumber, List<Integer> list);
 
-  void writeSFixed64List(int fieldNumber, boolean packed, List<Long> list);
+  void writeSFixed64List(int fieldNumber, List<Long> list);
 
-  void writeSInt32List(int fieldNumber, boolean packed, List<Integer> list);
+  void writeSInt32List(int fieldNumber, List<Integer> list);
 
-  void writeSInt64List(int fieldNumber, boolean packed, List<Long> list);
+  void writeSInt64List(int fieldNumber, List<Long> list);
 
   void writeMessageList(int fieldNumber, List<?> list);
 }

@@ -1,10 +1,9 @@
-package io.nproto;
+package io.nproto.util;
+
+import io.nproto.Internal;
 
 import java.nio.charset.Charset;
 
-/**
- * Created by nathanmittler on 4/4/16.
- */
 @Internal
 public final class InternalUtil {
   private InternalUtil() {}

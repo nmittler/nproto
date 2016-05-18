@@ -1,13 +1,13 @@
 package io.nproto.schema;
 
 import io.nproto.ByteString;
-import io.nproto.FieldType;
+import io.nproto.descriptor.PropertyType;
 
 import java.util.List;
 
 public interface Field {
   int number();
-  FieldType type();
+  PropertyType type();
   int intValue(Object message);
   <E extends Enum<E>> Enum<E> enumValue(Object message, Class<E> clazz);
   long longValue(Object message);

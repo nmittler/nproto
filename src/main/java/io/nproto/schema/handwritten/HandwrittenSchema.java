@@ -30,40 +30,40 @@ final class HandwrittenSchema implements Schema<PojoMessage> {
     writer.writeBytes(14, message.bytesField);
     writer.writeMessage(15, message.messageField);
     if (message.enumListField != null && !message.enumListField.isEmpty()) {
-      writer.writeEnumList(16, true, message.enumListField);
+      writer.writeEnumList(16, message.enumListField);
     }
     if (message.boolListField != null && !message.boolListField.isEmpty()) {
-      writer.writeBoolList(17, true, message.boolListField);
+      writer.writeBoolList(17, message.boolListField);
     }
     if (message.uint32ListField != null && !message.uint32ListField.isEmpty()) {
-      writer.writeUInt32List(18, true, message.uint32ListField);
+      writer.writeUInt32List(18, message.uint32ListField);
     }
     if (message.int32ListField != null && !message.int32ListField.isEmpty()) {
-      writer.writeInt32List(19, true, message.int32ListField);
+      writer.writeInt32List(19, message.int32ListField);
     }
     if (message.sInt32ListField != null && !message.sInt32ListField.isEmpty()) {
-      writer.writeSInt32List(20, true, message.sInt32ListField);
+      writer.writeSInt32List(20, message.sInt32ListField);
     }
     if (message.fixedInt32ListField != null && !message.fixedInt32ListField.isEmpty()) {
-      writer.writeFixed32List(21, true, message.fixedInt32ListField);
+      writer.writeFixed32List(21, message.fixedInt32ListField);
     }
     if (message.sFixedInt32ListField != null && !message.sFixedInt32ListField.isEmpty()) {
-      writer.writeSFixed32List(22, true, message.sFixedInt32ListField);
+      writer.writeSFixed32List(22, message.sFixedInt32ListField);
     }
     if (message.uint64ListField != null && !message.uint64ListField.isEmpty()) {
-      writer.writeUInt64List(23, true, message.uint64ListField);
+      writer.writeUInt64List(23, message.uint64ListField);
     }
     if (message.int64ListField != null && !message.int64ListField.isEmpty()) {
-      writer.writeInt64List(24, true, message.int64ListField);
+      writer.writeInt64List(24, message.int64ListField);
     }
     if (message.sInt64ListField != null && !message.sInt64ListField.isEmpty()) {
-      writer.writeSInt64List(25, true, message.sInt64ListField);
+      writer.writeSInt64List(25, message.sInt64ListField);
     }
     if (message.fixedInt64ListField != null && !message.fixedInt64ListField.isEmpty()) {
-      writer.writeFixed64List(26, true, message.fixedInt64ListField);
+      writer.writeFixed64List(26, message.fixedInt64ListField);
     }
     if (message.sFixedInt64ListField != null && !message.sFixedInt64ListField.isEmpty()) {
-      writer.writeSFixed64List(27, true, message.sFixedInt64ListField);
+      writer.writeSFixed64List(27, message.sFixedInt64ListField);
     }
     if (message.stringListField != null && !message.stringListField.isEmpty()) {
       writer.writeStringList(28, message.stringListField);

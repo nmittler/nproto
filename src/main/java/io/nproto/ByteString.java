@@ -1,5 +1,7 @@
 package io.nproto;
 
+import io.nproto.util.InternalUtil;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
