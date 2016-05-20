@@ -55,7 +55,7 @@ public class SchemaBenchmark {
   }
 
   @Param
-  private SchemaType schemaType;
+  public SchemaType schemaType;
 
   private PojoMessage msg = TestUtil.newTestMessage();
   private TestWriter writer = new TestWriter();
