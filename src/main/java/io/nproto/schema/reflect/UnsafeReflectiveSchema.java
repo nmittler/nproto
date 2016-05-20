@@ -14,8 +14,6 @@ import io.nproto.schema.Schema;
 import io.nproto.util.SchemaUtil;
 import io.nproto.descriptor.PropertyDescriptor;
 
-import sun.plugin.dom.exception.InvalidStateException;
-
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -386,7 +384,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @Override
     public int intValue(Object message) {
       if (type().getJavaType() != JavaType.INT) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       return UnsafeUtil.getInt(message, valueOffset());
     }
@@ -394,7 +392,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @Override
     public <E extends Enum<E>> Enum<E> enumValue(Object message, Class<E> clazz) {
       if (type().getJavaType() != JavaType.ENUM) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       return clazz.cast(UnsafeUtil.getObject(message, valueOffset()));
     }
@@ -402,7 +400,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @Override
     public long longValue(Object message) {
       if (type().getJavaType() != JavaType.LONG) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       return UnsafeUtil.getLong(message, valueOffset());
     }
@@ -410,7 +408,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @Override
     public double doubleValue(Object message) {
       if (type().getJavaType() != JavaType.DOUBLE) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       return UnsafeUtil.getDouble(message, valueOffset());
     }
@@ -418,7 +416,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @Override
     public float floatValue(Object message) {
       if (type().getJavaType() != JavaType.FLOAT) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       return UnsafeUtil.getFloat(message, valueOffset());
     }
@@ -426,7 +424,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @Override
     public Object messageValue(Object message) {
       if (type().getJavaType() != JavaType.MESSAGE) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       return UnsafeUtil.getObject(message, valueOffset());
     }
@@ -434,7 +432,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @Override
     public String stringValue(Object message) {
       if (type().getJavaType() != JavaType.STRING) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       return (String) UnsafeUtil.getObject(message, valueOffset());
     }
@@ -442,7 +440,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @Override
     public ByteString bytesValue(Object message) {
       if (type().getJavaType() != JavaType.BYTE_STRING) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       return (ByteString) UnsafeUtil.getObject(message, valueOffset());
     }
@@ -451,7 +449,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
     @SuppressWarnings("unchecked")
     public <L> List<L> values(Object message, Class<? extends List<L>> clazz) {
       if (type().getJavaType() != JavaType.LIST) {
-        throw new InvalidStateException("Incorrect java type: " + type().getJavaType());
+        throw new IllegalStateException("Incorrect java type: " + type().getJavaType());
       }
       // TODO(nathanmittler): check the type parameter before casting.
       return (List<L>) UnsafeUtil.getObject(message, valueOffset());
