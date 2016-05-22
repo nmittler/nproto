@@ -8,6 +8,7 @@ import io.nproto.schema.Schema;
 import io.nproto.schema.SchemaFactory;
 import io.nproto.schema.gen.AsmSchemaFactory;
 import io.nproto.schema.handwritten.HandwrittenSchemaFactory;
+import io.nproto.schema.reflect.AndroidUnsafeReflectiveSchemaFactory;
 import io.nproto.schema.reflect.UnsafeReflectiveSchemaFactory;
 import io.nproto.util.TestUtil;
 
@@ -26,6 +27,7 @@ public class SchemaBenchmark {
   public enum SchemaType {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
     REFLECTIVE(new UnsafeReflectiveSchemaFactory()),
+    ANDROID_REFLECTIVE(new AndroidUnsafeReflectiveSchemaFactory()),
     ASM(new AsmSchemaFactory()) {
       @Override
       byte[] createSchema() {
