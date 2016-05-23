@@ -9,7 +9,7 @@ import java.util.List;
 public class BeanDescriptor {
   private final List<PropertyDescriptor> propertyDescriptors;
 
-  BeanDescriptor(List<PropertyDescriptor> propertyDescriptors) {
+  public BeanDescriptor(List<PropertyDescriptor> propertyDescriptors) {
     this.propertyDescriptors = Collections.unmodifiableList(propertyDescriptors);
   }
 

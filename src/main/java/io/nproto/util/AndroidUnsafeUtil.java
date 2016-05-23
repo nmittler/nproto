@@ -51,27 +51,23 @@ public final class AndroidUnsafeUtil {
   }
 
   public static byte getByte(Object obj, long offset) {
-    long alignedOffset = offset & ~3;
-    long shiftAmount;
     if (IS_BIG_ENDIAN) {
-      shiftAmount = (~offset & 3) * 8;
+      return (byte) ((UNSAFE.getInt(obj, offset & ~3) >>> ((~offset & 3) << 3)) & 0xFF);
     } else {
-      shiftAmount = (offset & 3) * 8;
+      return (byte) ((UNSAFE.getInt(obj, offset & ~3) >>> ((offset & 3) << 3)) & 0xFF);
     }
-    return (byte) ((UNSAFE.getInt(obj, alignedOffset) >>> shiftAmount) & 0xFF);
   }
 
   public static void putByte(Object obj, long offset, byte value) {
-    final long alignedOffset = offset & ~3;
-    int intValue = getInt(obj, alignedOffset);
-    int shiftAmount;
     if (IS_BIG_ENDIAN) {
-      shiftAmount = (~((int) offset) & 3) * 8;
+      int intValue = UNSAFE.getInt(obj, offset & ~3);
+      intValue &= ((int) value) << ((~((int) offset) & 3) << 3);
+      UNSAFE.putInt(obj, offset & ~3, intValue);
     } else {
-      shiftAmount = (((int) offset) & 3) * 8;
+      int intValue = UNSAFE.getInt(obj, offset & ~3);
+      intValue &= ((int) value) << ((((int) offset) & 3) << 3);
+      UNSAFE.putInt(obj, offset & ~3, intValue);
     }
-    intValue &= ((int) value) << shiftAmount;
-    UNSAFE.putInt(obj, alignedOffset, intValue);
   }
 
   /*public static short getShort(Object obj, long offset) {

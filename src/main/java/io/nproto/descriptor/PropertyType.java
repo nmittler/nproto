@@ -8,6 +8,7 @@ import static io.nproto.WireFormat.WIRETYPE_VARINT;
 import io.nproto.ByteString;
 import io.nproto.JavaType;
 import io.nproto.ProtoField;
+import io.nproto.WireFormat;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -94,40 +95,40 @@ public enum PropertyType {
   }
 
   public static PropertyType forField(Field f) {
-    return forField(f, f.getAnnotation(ProtoField.class));
+    return forField(f, f.getAnnotation(ProtoField.class).type());
   }
 
-  public static PropertyType forField(Field f, ProtoField protoField) {
-    if (protoField == null) {
-      throw new IllegalArgumentException("Field must have the ProtoField annotation");
+  public static PropertyType forField(Field f, WireFormat.FieldType fieldType) {
+    if (fieldType == null) {
+      throw new NullPointerException("fieldType");
     }
 
-    final Class<?> fieldType = f.getType();
-    final boolean repeated = List.class.isAssignableFrom(fieldType);
-    switch (protoField.type()) {
+    final Class<?> clazz = f.getType();
+    final boolean repeated = List.class.isAssignableFrom(clazz);
+    switch (fieldType) {
       case DOUBLE:
         if (repeated) {
           return DOUBLE_LIST;
         }
-        checkRequiredType(double.class, protoField, fieldType);
+        checkRequiredType(double.class, fieldType, clazz);
         return DOUBLE;
       case FLOAT:
         if (repeated) {
           return FLOAT_LIST;
         }
-        checkRequiredType(float.class, protoField, fieldType);
+        checkRequiredType(float.class, fieldType, clazz);
         return FLOAT;
       case INT64:
         if (repeated) {
           return INT64_LIST;
         }
-        checkRequiredType(long.class, protoField, fieldType);
+        checkRequiredType(long.class, fieldType, clazz);
         return INT64;
       case UINT64:
         if (repeated) {
           return UINT64_LIST;
         }
-        checkRequiredType(long.class, protoField, fieldType);
+        checkRequiredType(long.class, fieldType, clazz);
         return UINT64;
       case INT32:
         if (repeated) {
@@ -138,25 +139,25 @@ public enum PropertyType {
         if (repeated) {
           return FIXED64_LIST;
         }
-        checkRequiredType(long.class, protoField, fieldType);
+        checkRequiredType(long.class, fieldType, clazz);
         return FIXED64;
       case FIXED32:
         if (repeated) {
           return FIXED32_LIST;
         }
-        checkRequiredType(int.class, protoField, fieldType);
+        checkRequiredType(int.class, fieldType, clazz);
         return FIXED32;
       case BOOL:
         if (repeated) {
           return BOOL_LIST;
         }
-        checkRequiredType(boolean.class, protoField, fieldType);
+        checkRequiredType(boolean.class, fieldType, clazz);
         return BOOL;
       case STRING:
         if (repeated) {
           return STRING_LIST;
         }
-        checkRequiredType(String.class, protoField, fieldType);
+        checkRequiredType(String.class, fieldType, clazz);
         return STRING;
       case MESSAGE:
         if (repeated) {
@@ -167,55 +168,55 @@ public enum PropertyType {
         if (repeated) {
           return BYTES_LIST;
         }
-        checkRequiredType(ByteString.class, protoField, fieldType);
+        checkRequiredType(ByteString.class, fieldType, clazz);
         return BYTES;
       case UINT32:
         if (repeated) {
           return UINT32_LIST;
         }
-        checkRequiredType(int.class, protoField, fieldType);
+        checkRequiredType(int.class, fieldType, clazz);
         return UINT32;
       case ENUM:
         if (repeated) {
           return ENUM_LIST;
         }
-        checkRequiredType(Enum.class, protoField, fieldType);
+        checkRequiredType(Enum.class, fieldType, clazz);
         return ENUM;
       case SFIXED32:
         if (repeated) {
           return SFIXED32_LIST;
         }
-        checkRequiredType(int.class, protoField, fieldType);
+        checkRequiredType(int.class, fieldType, clazz);
         return SFIXED32;
       case SFIXED64:
         if (repeated) {
           return SFIXED64_LIST;
         }
-        checkRequiredType(long.class, protoField, fieldType);
+        checkRequiredType(long.class, fieldType, clazz);
         return SFIXED64;
       case SINT32:
         if (repeated) {
           return SINT32_LIST;
         }
-        checkRequiredType(int.class, protoField, fieldType);
+        checkRequiredType(int.class, fieldType, clazz);
         return SINT32;
       case SINT64:
         if (repeated) {
           return SINT64_LIST;
         }
-        checkRequiredType(long.class, protoField, fieldType);
+        checkRequiredType(long.class, fieldType, clazz);
         return SINT64;
       default:
-        throw new IllegalArgumentException("Unsupported field type: " + protoField.type());
+        throw new IllegalArgumentException("Unsupported field type: " + fieldType);
     }
   }
 
-  private static void checkRequiredType(Class<?> requiredType, ProtoField protoField, Class<?> fieldType) {
-    if (!requiredType.isAssignableFrom(fieldType)) {
+  private static void checkRequiredType(Class<?> requiredType, WireFormat.FieldType fieldType, Class<?> clazz) {
+    if (!requiredType.isAssignableFrom(clazz)) {
       throw new IllegalArgumentException(String.format(
               "Field type %s cannot be applied to %s ",
-              protoField.type().name(),
-              fieldType.getName()));
+              fieldType.name(),
+              clazz.getName()));
     }
   }
 }

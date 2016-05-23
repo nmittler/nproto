@@ -2,7 +2,6 @@ package io.nproto.benchmark;
 
 import io.nproto.ByteString;
 import io.nproto.PojoMessage;
-import io.nproto.Reader;
 import io.nproto.Writer;
 import io.nproto.schema.Schema;
 import io.nproto.schema.SchemaFactory;
@@ -23,33 +22,20 @@ import java.util.List;
 
 @State(Scope.Benchmark)
 @Fork(1)
-public class SchemaBenchmark {
+public class WriteToBenchmark {
   public enum SchemaType {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
     REFLECTIVE(new UnsafeReflectiveSchemaFactory()),
     ANDROID_REFLECTIVE(new AndroidUnsafeReflectiveSchemaFactory()),
-    ASM(new AsmSchemaFactory()) {
-      @Override
-      byte[] createSchema() {
-        return ((AsmSchemaFactory) factory).createSchemaClass(PojoMessage.class);
-      }
-    };
+    ASM(new AsmSchemaFactory());
 
     SchemaType(SchemaFactory factory) {
       this.factory = factory;
       schema = factory.createSchema(PojoMessage.class);
     }
 
-    final void mergeFrom(PojoMessage message, Reader reader) {
-      schema.mergeFrom(message, reader);
-    }
-
     final void writeTo(PojoMessage message, Writer writer) {
       schema.writeTo(message, writer);
-    }
-
-    Object createSchema() {
-      return factory.createSchema(PojoMessage.class);
     }
 
     final SchemaFactory factory;
@@ -61,18 +47,6 @@ public class SchemaBenchmark {
 
   private PojoMessage msg = TestUtil.newTestMessage();
   private TestWriter writer = new TestWriter();
-  private TestUtil.PojoReader reader = new TestUtil.PojoReader(msg);
-
-  @Benchmark
-  public Object create() {
-    return schemaType.createSchema();
-  }
-
-  @Benchmark
-  public void mergeFrom() {
-    schemaType.mergeFrom(new PojoMessage(), reader);
-    reader.reset();
-  }
 
   @Benchmark
   public void writeTo(Blackhole bh) {

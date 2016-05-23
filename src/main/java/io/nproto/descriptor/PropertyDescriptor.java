@@ -2,6 +2,7 @@ package io.nproto.descriptor;
 
 import io.nproto.Internal;
 import io.nproto.ProtoField;
+import io.nproto.WireFormat;
 
 import java.lang.reflect.Field;
 
@@ -11,10 +12,24 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
   public final PropertyType type;
   public final int fieldNumber;
 
-  PropertyDescriptor(Field field, ProtoField protoField) {
+  public PropertyDescriptor(Field field, ProtoField protoField) {
+    this( field, protoField.number(), protoField.type());
+  }
+
+  public PropertyDescriptor(Field field, int fieldNumber, WireFormat.FieldType fieldType) {
+    this( field, fieldNumber, PropertyType.forField(field, fieldType));
+  }
+
+  public PropertyDescriptor(Field field, int fieldNumber, PropertyType type) {
+    if (field == null) {
+      throw new NullPointerException("field");
+    }
+    if (type == null) {
+      throw new NullPointerException("type");
+    }
     this.field = field;
-    this.type = PropertyType.forField(field, protoField);
-    this.fieldNumber = protoField.number();
+    this.type = type;
+    this.fieldNumber = fieldNumber;
   }
 
   @Override
