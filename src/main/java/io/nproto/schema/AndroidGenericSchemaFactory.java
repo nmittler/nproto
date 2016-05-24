@@ -5,14 +5,14 @@ import io.nproto.descriptor.AnnotationBeanDescriptorFactory;
 import io.nproto.descriptor.BeanDescriptorFactory;
 
 @Internal
-public final class AndroidGenericFactory implements SchemaFactory {
+public final class AndroidGenericSchemaFactory implements SchemaFactory {
   private final BeanDescriptorFactory beanDescriptorFactory;
 
-  public AndroidGenericFactory() {
+  public AndroidGenericSchemaFactory() {
     this(AnnotationBeanDescriptorFactory.getInstance());
   }
 
-  public AndroidGenericFactory(BeanDescriptorFactory beanDescriptorFactory) {
+  public AndroidGenericSchemaFactory(BeanDescriptorFactory beanDescriptorFactory) {
     if (beanDescriptorFactory == null) {
       throw new NullPointerException("beanDescriptorFactory");
     }

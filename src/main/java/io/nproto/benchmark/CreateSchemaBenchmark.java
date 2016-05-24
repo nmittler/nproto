@@ -4,7 +4,7 @@ import io.nproto.PojoMessage;
 import io.nproto.schema.SchemaFactory;
 import io.nproto.schema.AsmSchemaFactory;
 import io.nproto.schema.HandwrittenSchemaFactory;
-import io.nproto.schema.AndroidGenericFactory;
+import io.nproto.schema.AndroidGenericSchemaFactory;
 import io.nproto.schema.GenericSchemaFactory;
 import io.nproto.util.TestUtil.PojoDescriptorFactory;
 
@@ -21,8 +21,8 @@ public class CreateSchemaBenchmark {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
     GENERIC(new GenericSchemaFactory()),
     GENERIC_NO_ANNOTATIONS(new GenericSchemaFactory(PojoDescriptorFactory.getInstance())),
-    ANDROID(new AndroidGenericFactory()),
-    ANDROID_NO_ANNOTATIONS(new AndroidGenericFactory(PojoDescriptorFactory.getInstance())),
+    ANDROID(new AndroidGenericSchemaFactory()),
+    ANDROID_NO_ANNOTATIONS(new AndroidGenericSchemaFactory(PojoDescriptorFactory.getInstance())),
     ASM(new AsmSchemaFactory()) {
       @Override
       byte[] createSchema() {
