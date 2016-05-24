@@ -175,127 +175,122 @@ final class GenericSchema<T> implements Schema<T> {
   @Override
   public void mergeFrom(T message, Reader reader) {
     while (true) {
-      int fieldNumber = reader.fieldNumber();
-      if (fieldNumber == Reader.READ_DONE) {
+      final long pos = fieldMap.getDataPos(reader.fieldNumber());
+      if (pos < 0) {
+        // Unknown field.
+        if (reader.skipField()) {
+          continue;
+        }
         // Done reading.
         return;
       }
-      long dataPos = fieldMap.getDataPos(fieldNumber);
-      if (dataPos >= 0) {
-        mergeFieldFrom(message, dataPos, reader);
-      } else if (!reader.skipField()) {
-        // We're done after skipping the unknown field.
-        return;
-      }
-    }
-  }
 
-  private void mergeFieldFrom(T message, long pos, Reader reader) {
-    switch(getFieldTypeId(getLong(pos))) {
-      case 1: //DOUBLE:
-        SchemaUtil.unsafeReadDouble(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 2: //FLOAT:
-        SchemaUtil.unsafeReadFloat(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 3: //INT64:
-        SchemaUtil.unsafeReadInt64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 4: //UINT64:
-        SchemaUtil.unsafeReadUInt64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 5: //INT32:
-        SchemaUtil.unsafeReadInt32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 6: //FIXED64:
-        SchemaUtil.unsafeReadFixed64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 7: //FIXED32:
-        SchemaUtil.unsafeReadFixed32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 8: //BOOL:
-        SchemaUtil.unsafeReadBool(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 9: //STRING:
-        SchemaUtil.unsafeReadString(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 10: //MESSAGE:
-        SchemaUtil.unsafeReadMessage(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 11: //BYTES:
-        SchemaUtil.unsafeReadBytes(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 12: //UINT32:
-        SchemaUtil.unsafeReadUInt32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 13: //ENUM:
-        SchemaUtil.unsafeReadEnum(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 14: //SFIXED32:
-        SchemaUtil.unsafeReadSFixed32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 15: //SFIXED64:
-        SchemaUtil.unsafeReadSFixed64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 16: //SINT32:
-        SchemaUtil.unsafeReadSInt32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 17: //SINT64:
-        SchemaUtil.unsafeReadSInt64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 18: //DOUBLE_LIST:
-        SchemaUtil.unsafeReadDoubleList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 19: //FLOAT_LIST:
-        SchemaUtil.unsafeReadFloatList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 20: //INT64_LIST:
-        SchemaUtil.unsafeReadInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 21: //UINT64_LIST:
-        SchemaUtil.unsafeReadUInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 22: //INT32_LIST:
-        SchemaUtil.unsafeReadInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 23: //FIXED64_LIST:
-        SchemaUtil.unsafeReadFixed64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 24: //FIXED32_LIST:
-        SchemaUtil.unsafeReadFixed32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 25: //BOOL_LIST:
-        SchemaUtil.unsafeReadBoolList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 26: //STRING_LIST:
-        SchemaUtil.unsafeReadStringList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 27: //MESSAGE_LIST:
-        SchemaUtil.unsafeReadMessageList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 28: //BYTES_LIST:
-        SchemaUtil.unsafeReadBytesList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 29: //UINT32_LIST:
-        SchemaUtil.unsafeReadUInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 30: //ENUM_LIST:
-        SchemaUtil.unsafeReadEnumList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 31: //SFIXED32_LIST:
-        SchemaUtil.unsafeReadSFixed32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 32: //SFIXED64_LIST:
-        SchemaUtil.unsafeReadSFixed64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 33: //SINT32_LIST:
-        SchemaUtil.unsafeReadSInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 34: //SINT64_LIST:
-        SchemaUtil.unsafeReadSInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      default:
-        throw new IllegalArgumentException("Unsupported fieldType: " + getFieldType(getLong(pos)));
+      switch(getFieldTypeId(getLong(pos))) {
+        case 1: //DOUBLE:
+          SchemaUtil.unsafeReadDouble(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 2: //FLOAT:
+          SchemaUtil.unsafeReadFloat(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 3: //INT64:
+          SchemaUtil.unsafeReadInt64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 4: //UINT64:
+          SchemaUtil.unsafeReadUInt64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 5: //INT32:
+          SchemaUtil.unsafeReadInt32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 6: //FIXED64:
+          SchemaUtil.unsafeReadFixed64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 7: //FIXED32:
+          SchemaUtil.unsafeReadFixed32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 8: //BOOL:
+          SchemaUtil.unsafeReadBool(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 9: //STRING:
+          SchemaUtil.unsafeReadString(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 10: //MESSAGE:
+          SchemaUtil.unsafeReadMessage(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 11: //BYTES:
+          SchemaUtil.unsafeReadBytes(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 12: //UINT32:
+          SchemaUtil.unsafeReadUInt32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 13: //ENUM:
+          SchemaUtil.unsafeReadEnum(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 14: //SFIXED32:
+          SchemaUtil.unsafeReadSFixed32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 15: //SFIXED64:
+          SchemaUtil.unsafeReadSFixed64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 16: //SINT32:
+          SchemaUtil.unsafeReadSInt32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 17: //SINT64:
+          SchemaUtil.unsafeReadSInt64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 18: //DOUBLE_LIST:
+          SchemaUtil.unsafeReadDoubleList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 19: //FLOAT_LIST:
+          SchemaUtil.unsafeReadFloatList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 20: //INT64_LIST:
+          SchemaUtil.unsafeReadInt64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 21: //UINT64_LIST:
+          SchemaUtil.unsafeReadUInt64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 22: //INT32_LIST:
+          SchemaUtil.unsafeReadInt32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 23: //FIXED64_LIST:
+          SchemaUtil.unsafeReadFixed64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 24: //FIXED32_LIST:
+          SchemaUtil.unsafeReadFixed32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 25: //BOOL_LIST:
+          SchemaUtil.unsafeReadBoolList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 26: //STRING_LIST:
+          SchemaUtil.unsafeReadStringList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 27: //MESSAGE_LIST:
+          SchemaUtil.unsafeReadMessageList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 28: //BYTES_LIST:
+          SchemaUtil.unsafeReadBytesList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 29: //UINT32_LIST:
+          SchemaUtil.unsafeReadUInt32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 30: //ENUM_LIST:
+          SchemaUtil.unsafeReadEnumList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 31: //SFIXED32_LIST:
+          SchemaUtil.unsafeReadSFixed32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 32: //SFIXED64_LIST:
+          SchemaUtil.unsafeReadSFixed64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 33: //SINT32_LIST:
+          SchemaUtil.unsafeReadSInt32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 34: //SINT64_LIST:
+          SchemaUtil.unsafeReadSInt64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        default:
+          throw new IllegalArgumentException("Unsupported fieldType: " + getFieldType(getLong(pos)));
+      }
     }
   }
 
@@ -477,6 +472,9 @@ final class GenericSchema<T> implements Schema<T> {
 
     @Override
     long getDataPos(int fieldNumber) {
+      if (fieldNumber < 0 || fieldNumber >= positions.length) {
+        return -1;
+      }
       return positions[fieldNumber - min];
     }
   }
