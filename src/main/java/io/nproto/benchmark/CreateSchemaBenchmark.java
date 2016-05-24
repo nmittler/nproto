@@ -2,10 +2,10 @@ package io.nproto.benchmark;
 
 import io.nproto.PojoMessage;
 import io.nproto.schema.SchemaFactory;
-import io.nproto.schema.gen.AsmSchemaFactory;
-import io.nproto.schema.handwritten.HandwrittenSchemaFactory;
-import io.nproto.schema.reflect.AndroidUnsafeReflectiveSchemaFactory;
-import io.nproto.schema.reflect.UnsafeReflectiveSchemaFactory;
+import io.nproto.schema.AsmSchemaFactory;
+import io.nproto.schema.HandwrittenSchemaFactory;
+import io.nproto.schema.AndroidGenericFactory;
+import io.nproto.schema.GenericSchemaFactory;
 import io.nproto.util.TestUtil.PojoDescriptorFactory;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -19,10 +19,10 @@ import org.openjdk.jmh.annotations.State;
 public class CreateSchemaBenchmark {
   public enum SchemaType {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
-    REFLECTIVE(new UnsafeReflectiveSchemaFactory()),
-    REFLECTIVE_NO_ANNOTATIONS(new UnsafeReflectiveSchemaFactory(PojoDescriptorFactory.getInstance())),
-    ANDROID(new AndroidUnsafeReflectiveSchemaFactory()),
-    ANDROID_NO_ANNOTATIONS(new AndroidUnsafeReflectiveSchemaFactory(PojoDescriptorFactory.getInstance())),
+    GENERIC(new GenericSchemaFactory()),
+    GENERIC_NO_ANNOTATIONS(new GenericSchemaFactory(PojoDescriptorFactory.getInstance())),
+    ANDROID(new AndroidGenericFactory()),
+    ANDROID_NO_ANNOTATIONS(new AndroidGenericFactory(PojoDescriptorFactory.getInstance())),
     ASM(new AsmSchemaFactory()) {
       @Override
       byte[] createSchema() {

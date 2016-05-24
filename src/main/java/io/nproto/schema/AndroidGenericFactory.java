@@ -1,20 +1,18 @@
-package io.nproto.schema.reflect;
+package io.nproto.schema;
 
 import io.nproto.Internal;
 import io.nproto.descriptor.AnnotationBeanDescriptorFactory;
 import io.nproto.descriptor.BeanDescriptorFactory;
-import io.nproto.schema.Schema;
-import io.nproto.schema.SchemaFactory;
 
 @Internal
-public final class UnsafeReflectiveSchemaFactory implements SchemaFactory {
+public final class AndroidGenericFactory implements SchemaFactory {
   private final BeanDescriptorFactory beanDescriptorFactory;
 
-  public UnsafeReflectiveSchemaFactory() {
+  public AndroidGenericFactory() {
     this(AnnotationBeanDescriptorFactory.getInstance());
   }
 
-  public UnsafeReflectiveSchemaFactory(BeanDescriptorFactory beanDescriptorFactory) {
+  public AndroidGenericFactory(BeanDescriptorFactory beanDescriptorFactory) {
     if (beanDescriptorFactory == null) {
       throw new NullPointerException("beanDescriptorFactory");
     }
@@ -23,6 +21,6 @@ public final class UnsafeReflectiveSchemaFactory implements SchemaFactory {
 
   @Override
   public <T> Schema<T> createSchema(Class<T> messageType) {
-    return new UnsafeReflectiveSchema<T>(beanDescriptorFactory.descriptorFor(messageType));
+    return new AndroidGenericSchema<T>(beanDescriptorFactory.descriptorFor(messageType));
   }
 }

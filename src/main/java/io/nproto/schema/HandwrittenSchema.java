@@ -1,12 +1,10 @@
-package io.nproto.schema.handwritten;
+package io.nproto.schema;
 
 import io.nproto.ByteString;
 import io.nproto.PojoMessage;
 import io.nproto.PojoMessage.MyEnum;
 import io.nproto.Reader;
 import io.nproto.Writer;
-import io.nproto.schema.Field;
-import io.nproto.schema.Schema;
 
 import java.util.ArrayList;
 import java.util.Iterator;

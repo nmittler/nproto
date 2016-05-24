@@ -4,10 +4,10 @@ import io.nproto.PojoMessage;
 import io.nproto.Reader;
 import io.nproto.schema.Schema;
 import io.nproto.schema.SchemaFactory;
-import io.nproto.schema.gen.AsmSchemaFactory;
-import io.nproto.schema.handwritten.HandwrittenSchemaFactory;
-import io.nproto.schema.reflect.AndroidUnsafeReflectiveSchemaFactory;
-import io.nproto.schema.reflect.UnsafeReflectiveSchemaFactory;
+import io.nproto.schema.AsmSchemaFactory;
+import io.nproto.schema.HandwrittenSchemaFactory;
+import io.nproto.schema.AndroidGenericFactory;
+import io.nproto.schema.GenericSchemaFactory;
 import io.nproto.util.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -21,8 +21,8 @@ import org.openjdk.jmh.annotations.State;
 public class MergeFromBenchmark {
   public enum SchemaType {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
-    REFLECTIVE(new UnsafeReflectiveSchemaFactory()),
-    ANDROID_REFLECTIVE(new AndroidUnsafeReflectiveSchemaFactory()),
+    GENERIC(new GenericSchemaFactory()),
+    ANDROID(new AndroidGenericFactory()),
     ASM(new AsmSchemaFactory());
 
     SchemaType(SchemaFactory factory) {

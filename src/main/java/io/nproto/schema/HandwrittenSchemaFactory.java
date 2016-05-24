@@ -1,9 +1,7 @@
-package io.nproto.schema.handwritten;
+package io.nproto.schema;
 
 
 import io.nproto.PojoMessage;
-import io.nproto.schema.Schema;
-import io.nproto.schema.SchemaFactory;
 
 public final class HandwrittenSchemaFactory implements SchemaFactory {
   @Override

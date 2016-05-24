@@ -1,12 +1,13 @@
-package io.nproto.schema.reflect;
+package io.nproto.schema;
 
 import io.nproto.PojoMessage;
 import io.nproto.schema.AbstractSchemaFactoryTest;
 import io.nproto.schema.Schema;
+import io.nproto.schema.GenericSchemaFactory;
 
-public class AndroidUnsafeReflectiveSchemaFactoryTest extends AbstractSchemaFactoryTest {
+public class GenericSchemaFactoryTest extends AbstractSchemaFactoryTest {
   private static final Schema<PojoMessage> SCHEMA =
-          new AndroidUnsafeReflectiveSchemaFactory().createSchema(PojoMessage.class);
+          new GenericSchemaFactory().createSchema(PojoMessage.class);
 
   @Override
   protected Schema<PojoMessage> schema() {

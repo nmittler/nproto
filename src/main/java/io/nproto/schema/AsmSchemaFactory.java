@@ -1,4 +1,4 @@
-package io.nproto.schema.gen;
+package io.nproto.schema;
 
 import static io.nproto.util.UnsafeUtil.fieldOffset;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
@@ -26,8 +26,6 @@ import io.nproto.descriptor.AnnotationBeanDescriptorFactory;
 import io.nproto.descriptor.BeanDescriptorFactory;
 import io.nproto.descriptor.PropertyDescriptor;
 import io.nproto.descriptor.PropertyType;
-import io.nproto.schema.Schema;
-import io.nproto.schema.SchemaFactory;
 import io.nproto.util.SchemaUtil;
 
 import org.objectweb.asm.ClassVisitor;

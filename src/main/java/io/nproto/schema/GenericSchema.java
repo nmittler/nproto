@@ -1,18 +1,16 @@
-package io.nproto.schema.reflect;
+package io.nproto.schema;
 
 import static io.nproto.util.UnsafeUtil.fieldOffset;
 
 import io.nproto.ByteString;
-import io.nproto.descriptor.PropertyType;
 import io.nproto.JavaType;
 import io.nproto.Reader;
-import io.nproto.descriptor.BeanDescriptor;
-import io.nproto.util.UnsafeUtil;
 import io.nproto.Writer;
-import io.nproto.schema.Field;
-import io.nproto.schema.Schema;
-import io.nproto.util.SchemaUtil;
+import io.nproto.descriptor.BeanDescriptor;
 import io.nproto.descriptor.PropertyDescriptor;
+import io.nproto.descriptor.PropertyType;
+import io.nproto.util.SchemaUtil;
+import io.nproto.util.UnsafeUtil;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
@@ -20,7 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-final class UnsafeReflectiveSchema<T> implements Schema<T> {
+final class GenericSchema<T> implements Schema<T> {
   private static final int ENTRIES_PER_FIELD = 2;
   private static final int LONG_LENGTH = 8;
   private static final int FIELD_LENGTH = ENTRIES_PER_FIELD * LONG_LENGTH;
@@ -32,7 +30,7 @@ final class UnsafeReflectiveSchema<T> implements Schema<T> {
   // Array that holds lazy entries for fields used for iteration.
   private WeakReference<Field[]> fields;
 
-  UnsafeReflectiveSchema(BeanDescriptor descriptor) {
+  GenericSchema(BeanDescriptor descriptor) {
     List<PropertyDescriptor> protoProperties = descriptor.getPropertyDescriptors();
     final int numFields = protoProperties.size();
     fieldMap = SchemaUtil.shouldUseTableSwitch(protoProperties) ?

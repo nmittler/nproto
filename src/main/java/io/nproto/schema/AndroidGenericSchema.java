@@ -1,4 +1,4 @@
-package io.nproto.schema.reflect;
+package io.nproto.schema;
 
 import io.nproto.ByteString;
 import io.nproto.JavaType;
@@ -7,8 +7,6 @@ import io.nproto.Writer;
 import io.nproto.descriptor.BeanDescriptor;
 import io.nproto.descriptor.PropertyDescriptor;
 import io.nproto.descriptor.PropertyType;
-import io.nproto.schema.Field;
-import io.nproto.schema.Schema;
 import io.nproto.util.AndroidSchemaUtil;
 import io.nproto.util.AndroidUnsafeUtil;
 
@@ -18,7 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-final class AndroidUnsafeReflectiveSchema<T> implements Schema<T> {
+final class AndroidGenericSchema<T> implements Schema<T> {
   private static final int ENTRIES_PER_FIELD = 2;
   private static final int LONG_LENGTH = 8;
   private static final int FIELD_LENGTH = ENTRIES_PER_FIELD * LONG_LENGTH;
@@ -30,7 +28,7 @@ final class AndroidUnsafeReflectiveSchema<T> implements Schema<T> {
   // Array that holds lazy entries for fields used for iteration.
   private WeakReference<Field[]> fields;
 
-  AndroidUnsafeReflectiveSchema(BeanDescriptor descriptor) {
+  AndroidGenericSchema(BeanDescriptor descriptor) {
     List<PropertyDescriptor> protoProperties = descriptor.getPropertyDescriptors();
     final int numFields = protoProperties.size();
     fieldMap = AndroidSchemaUtil.shouldUseTableSwitch(protoProperties) ?
