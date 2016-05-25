@@ -59,7 +59,7 @@ public final class TestUtil {
 
   public static final class PojoDescriptorFactory implements BeanDescriptorFactory {
     private static final PojoDescriptorFactory INSTANCE = new PojoDescriptorFactory();
-    private static final BeanDescriptor DESCRIPTOR = newDescriptor();
+    //private static final BeanDescriptor DESCRIPTOR = newDescriptor();
 
     private PojoDescriptorFactory() {
     }
@@ -76,7 +76,7 @@ public final class TestUtil {
       }
     }
 
-    public static BeanDescriptor newDescriptor() {
+    private static BeanDescriptor newDescriptor() {
       final Field ENUM_FIELD = pojoField("enumField");
       final Field BOOL_FIELD = pojoField("boolField");
       final Field UINT32_FIELD = pojoField("uint32Field");
@@ -177,7 +177,7 @@ public final class TestUtil {
       if (!PojoMessage.class.isAssignableFrom(clazz)) {
         throw new IllegalArgumentException("Unsupported class: " + clazz.getName());
       }
-      return DESCRIPTOR;
+      return newDescriptor();
     }
   }
 
