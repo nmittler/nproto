@@ -173,127 +173,122 @@ final class AndroidGenericSchema<T> implements Schema<T> {
   @Override
   public void mergeFrom(T message, Reader reader) {
     while (true) {
-      int fieldNumber = reader.fieldNumber();
-      if (fieldNumber == Reader.READ_DONE) {
+      final long pos = fieldMap.getDataPos(reader.fieldNumber());
+      if (pos < 0L) {
+        // Unknown field.
+        if (reader.skipField()) {
+          continue;
+        }
         // Done reading.
         return;
       }
-      long dataPos = fieldMap.getDataPos(fieldNumber);
-      if (dataPos >= 0) {
-        mergeFieldFrom(message, dataPos, reader);
-      } else if (!reader.skipField()) {
-        // We're done after skipping the unknown field.
-        return;
-      }
-    }
-  }
 
-  private void mergeFieldFrom(T message, long pos, Reader reader) {
-    switch(getFieldTypeId(getLong(pos))) {
-      case 1: //DOUBLE:
-        AndroidSchemaUtil.unsafeReadDouble(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 2: //FLOAT:
-        AndroidSchemaUtil.unsafeReadFloat(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 3: //INT64:
-        AndroidSchemaUtil.unsafeReadInt64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 4: //UINT64:
-        AndroidSchemaUtil.unsafeReadUInt64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 5: //INT32:
-        AndroidSchemaUtil.unsafeReadInt32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 6: //FIXED64:
-        AndroidSchemaUtil.unsafeReadFixed64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 7: //FIXED32:
-        AndroidSchemaUtil.unsafeReadFixed32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 8: //BOOL:
-        AndroidSchemaUtil.unsafeReadBool(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 9: //STRING:
-        AndroidSchemaUtil.unsafeReadString(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 10: //MESSAGE:
-        AndroidSchemaUtil.unsafeReadMessage(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 11: //BYTES:
-        AndroidSchemaUtil.unsafeReadBytes(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 12: //UINT32:
-        AndroidSchemaUtil.unsafeReadUInt32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 13: //ENUM:
-        AndroidSchemaUtil.unsafeReadEnum(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 14: //SFIXED32:
-        AndroidSchemaUtil.unsafeReadSFixed32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 15: //SFIXED64:
-        AndroidSchemaUtil.unsafeReadSFixed64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 16: //SINT32:
-        AndroidSchemaUtil.unsafeReadSInt32(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 17: //SINT64:
-        AndroidSchemaUtil.unsafeReadSInt64(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 18: //DOUBLE_LIST:
-        AndroidSchemaUtil.unsafeReadDoubleList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 19: //FLOAT_LIST:
-        AndroidSchemaUtil.unsafeReadFloatList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 20: //INT64_LIST:
-        AndroidSchemaUtil.unsafeReadInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 21: //UINT64_LIST:
-        AndroidSchemaUtil.unsafeReadUInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 22: //INT32_LIST:
-        AndroidSchemaUtil.unsafeReadInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 23: //FIXED64_LIST:
-        AndroidSchemaUtil.unsafeReadFixed64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 24: //FIXED32_LIST:
-        AndroidSchemaUtil.unsafeReadFixed32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 25: //BOOL_LIST:
-        AndroidSchemaUtil.unsafeReadBoolList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 26: //STRING_LIST:
-        AndroidSchemaUtil.unsafeReadStringList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 27: //MESSAGE_LIST:
-        AndroidSchemaUtil.unsafeReadMessageList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 28: //BYTES_LIST:
-        AndroidSchemaUtil.unsafeReadBytesList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 29: //UINT32_LIST:
-        AndroidSchemaUtil.unsafeReadUInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 30: //ENUM_LIST:
-        AndroidSchemaUtil.unsafeReadEnumList(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 31: //SFIXED32_LIST:
-        AndroidSchemaUtil.unsafeReadSFixed32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 32: //SFIXED64_LIST:
-        AndroidSchemaUtil.unsafeReadSFixed64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 33: //SINT32_LIST:
-        AndroidSchemaUtil.unsafeReadSInt32List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      case 34: //SINT64_LIST:
-        AndroidSchemaUtil.unsafeReadSInt64List(message, getLong(pos + LONG_LENGTH), reader);
-        break;
-      default:
-        throw new IllegalArgumentException("Unsupported fieldType: " + getFieldType(getLong(pos)));
+      switch(getFieldTypeId(getLong(pos))) {
+        case 1: //DOUBLE:
+          AndroidSchemaUtil.unsafeReadDouble(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 2: //FLOAT:
+          AndroidSchemaUtil.unsafeReadFloat(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 3: //INT64:
+          AndroidSchemaUtil.unsafeReadInt64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 4: //UINT64:
+          AndroidSchemaUtil.unsafeReadUInt64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 5: //INT32:
+          AndroidSchemaUtil.unsafeReadInt32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 6: //FIXED64:
+          AndroidSchemaUtil.unsafeReadFixed64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 7: //FIXED32:
+          AndroidSchemaUtil.unsafeReadFixed32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 8: //BOOL:
+          AndroidSchemaUtil.unsafeReadBool(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 9: //STRING:
+          AndroidSchemaUtil.unsafeReadString(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 10: //MESSAGE:
+          AndroidSchemaUtil.unsafeReadMessage(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 11: //BYTES:
+          AndroidSchemaUtil.unsafeReadBytes(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 12: //UINT32:
+          AndroidSchemaUtil.unsafeReadUInt32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 13: //ENUM:
+          AndroidSchemaUtil.unsafeReadEnum(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 14: //SFIXED32:
+          AndroidSchemaUtil.unsafeReadSFixed32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 15: //SFIXED64:
+          AndroidSchemaUtil.unsafeReadSFixed64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 16: //SINT32:
+          AndroidSchemaUtil.unsafeReadSInt32(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 17: //SINT64:
+          AndroidSchemaUtil.unsafeReadSInt64(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 18: //DOUBLE_LIST:
+          AndroidSchemaUtil.unsafeReadDoubleList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 19: //FLOAT_LIST:
+          AndroidSchemaUtil.unsafeReadFloatList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 20: //INT64_LIST:
+          AndroidSchemaUtil.unsafeReadInt64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 21: //UINT64_LIST:
+          AndroidSchemaUtil.unsafeReadUInt64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 22: //INT32_LIST:
+          AndroidSchemaUtil.unsafeReadInt32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 23: //FIXED64_LIST:
+          AndroidSchemaUtil.unsafeReadFixed64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 24: //FIXED32_LIST:
+          AndroidSchemaUtil.unsafeReadFixed32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 25: //BOOL_LIST:
+          AndroidSchemaUtil.unsafeReadBoolList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 26: //STRING_LIST:
+          AndroidSchemaUtil.unsafeReadStringList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 27: //MESSAGE_LIST:
+          AndroidSchemaUtil.unsafeReadMessageList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 28: //BYTES_LIST:
+          AndroidSchemaUtil.unsafeReadBytesList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 29: //UINT32_LIST:
+          AndroidSchemaUtil.unsafeReadUInt32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 30: //ENUM_LIST:
+          AndroidSchemaUtil.unsafeReadEnumList(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 31: //SFIXED32_LIST:
+          AndroidSchemaUtil.unsafeReadSFixed32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 32: //SFIXED64_LIST:
+          AndroidSchemaUtil.unsafeReadSFixed64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 33: //SINT32_LIST:
+          AndroidSchemaUtil.unsafeReadSInt32List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        case 34: //SINT64_LIST:
+          AndroidSchemaUtil.unsafeReadSInt64List(message, getLong(pos + LONG_LENGTH), reader);
+          break;
+        default:
+          throw new IllegalArgumentException("Unsupported fieldType: " + getFieldType(getLong(pos)));
+      }
     }
   }
 
@@ -459,10 +454,12 @@ final class AndroidGenericSchema<T> implements Schema<T> {
 
   private static final class TableFieldMap extends FieldMap {
     private final int min;
+    private final int max;
     private final long[] positions;
 
     TableFieldMap(List<PropertyDescriptor> fields) {
       min = fields.get(0).fieldNumber;
+      max = fields.get(fields.size() - 1).fieldNumber;
       int max = fields.get(fields.size() - 1).fieldNumber;
       int numPositions = (max - min) + 1;
       positions = new long[numPositions];
@@ -475,6 +472,9 @@ final class AndroidGenericSchema<T> implements Schema<T> {
 
     @Override
     long getDataPos(int fieldNumber) {
+      if (fieldNumber < min || fieldNumber > max) {
+        return -1;
+      }
       return positions[fieldNumber - min];
     }
   }

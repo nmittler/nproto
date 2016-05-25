@@ -176,7 +176,7 @@ final class GenericSchema<T> implements Schema<T> {
   public void mergeFrom(T message, Reader reader) {
     while (true) {
       final long pos = fieldMap.getDataPos(reader.fieldNumber());
-      if (pos < 0) {
+      if (pos < 0L) {
         // Unknown field.
         if (reader.skipField()) {
           continue;
@@ -456,10 +456,12 @@ final class GenericSchema<T> implements Schema<T> {
 
   private static final class TableFieldMap extends FieldMap {
     private final int min;
+    private final int max;
     private final long[] positions;
 
     TableFieldMap(List<PropertyDescriptor> fields) {
       min = fields.get(0).fieldNumber;
+      max = fields.get(fields.size() - 1).fieldNumber;
       int max = fields.get(fields.size() - 1).fieldNumber;
       int numPositions = (max - min) + 1;
       positions = new long[numPositions];
@@ -472,7 +474,7 @@ final class GenericSchema<T> implements Schema<T> {
 
     @Override
     long getDataPos(int fieldNumber) {
-      if (fieldNumber < 0 || fieldNumber >= positions.length) {
+      if (fieldNumber < min || fieldNumber > max) {
         return -1;
       }
       return positions[fieldNumber - min];
