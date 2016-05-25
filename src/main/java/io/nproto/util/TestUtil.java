@@ -59,38 +59,7 @@ public final class TestUtil {
 
   public static final class PojoDescriptorFactory implements BeanDescriptorFactory {
     private static final PojoDescriptorFactory INSTANCE = new PojoDescriptorFactory();
-
-    private static final Field ENUM_FIELD = pojoField("enumField");
-    private static final Field BOOL_FIELD = pojoField("boolField");
-    private static final Field UINT32_FIELD = pojoField("uint32Field");
-    private static final Field INT32_FIELD = pojoField("int32Field");
-    private static final Field SINT32_FIELD = pojoField("sInt32Field");
-    private static final Field FIXED32_FIELD = pojoField("fixedInt32Field");
-    private static final Field SFIXED32_FIELD = pojoField("sFixedInt32Field");
-    private static final Field UINT64_FIELD = pojoField("uint64Field");
-    private static final Field INT64_FIELD = pojoField("int64Field");
-    private static final Field SINT64_FIELD = pojoField("sInt64Field");
-    private static final Field FIXED64_FIELD = pojoField("fixedInt64Field");
-    private static final Field SFIXED64_FIELD = pojoField("sFixedInt64Field");
-    private static final Field STRING_FIELD = pojoField("stringField");
-    private static final Field BYTES_FIELD = pojoField("bytesField");
-    private static final Field MESSAGE_FIELD = pojoField("messageField");
-    private static final Field ENUM_LIST_FIELD = pojoField("enumListField");
-    private static final Field BOOL_LIST_FIELD = pojoField("boolListField");
-    private static final Field UINT32_LIST_FIELD = pojoField("uint32ListField");
-    private static final Field INT32_LIST_FIELD = pojoField("int32ListField");
-    private static final Field SINT32_LIST_FIELD = pojoField("sInt32ListField");
-    private static final Field FIXED32_LIST_FIELD = pojoField("fixedInt32ListField");
-    private static final Field SFIXED32_LIST_FIELD = pojoField("sFixedInt32ListField");
-    private static final Field UINT64_LIST_FIELD = pojoField("uint64ListField");
-    private static final Field INT64_LIST_FIELD = pojoField("int64ListField");
-    private static final Field SINT64_LIST_FIELD = pojoField("sInt64ListField");
-    private static final Field FIXED64_LIST_FIELD = pojoField("fixedInt64ListField");
-    private static final Field SFIXED64_LIST_FIELD = pojoField("sFixedInt64ListField");
-    private static final Field STRING_LIST_FIELD = pojoField("stringListField");
-    private static final Field BYTES_LIST_FIELD = pojoField("bytesListField");
-    private static final Field MESSAGE_LIST_FIELD = pojoField("messageListField");
-    private static final BeanDescriptor DESCRIPTOR = descriptor();
+    private static final BeanDescriptor DESCRIPTOR = newDescriptor();
 
     private PojoDescriptorFactory() {
     }
@@ -107,7 +76,38 @@ public final class TestUtil {
       }
     }
 
-    private static BeanDescriptor descriptor() {
+    public static BeanDescriptor newDescriptor() {
+      final Field ENUM_FIELD = pojoField("enumField");
+      final Field BOOL_FIELD = pojoField("boolField");
+      final Field UINT32_FIELD = pojoField("uint32Field");
+      final Field INT32_FIELD = pojoField("int32Field");
+      final Field SINT32_FIELD = pojoField("sInt32Field");
+      final Field FIXED32_FIELD = pojoField("fixedInt32Field");
+      final Field SFIXED32_FIELD = pojoField("sFixedInt32Field");
+      final Field UINT64_FIELD = pojoField("uint64Field");
+      final Field INT64_FIELD = pojoField("int64Field");
+      final Field SINT64_FIELD = pojoField("sInt64Field");
+      final Field FIXED64_FIELD = pojoField("fixedInt64Field");
+      final Field SFIXED64_FIELD = pojoField("sFixedInt64Field");
+      final Field STRING_FIELD = pojoField("stringField");
+      final Field BYTES_FIELD = pojoField("bytesField");
+      final Field MESSAGE_FIELD = pojoField("messageField");
+      final Field ENUM_LIST_FIELD = pojoField("enumListField");
+      final Field BOOL_LIST_FIELD = pojoField("boolListField");
+      final Field UINT32_LIST_FIELD = pojoField("uint32ListField");
+      final Field INT32_LIST_FIELD = pojoField("int32ListField");
+      final Field SINT32_LIST_FIELD = pojoField("sInt32ListField");
+      final Field FIXED32_LIST_FIELD = pojoField("fixedInt32ListField");
+      final Field SFIXED32_LIST_FIELD = pojoField("sFixedInt32ListField");
+      final Field UINT64_LIST_FIELD = pojoField("uint64ListField");
+      final Field INT64_LIST_FIELD = pojoField("int64ListField");
+      final Field SINT64_LIST_FIELD = pojoField("sInt64ListField");
+      final Field FIXED64_LIST_FIELD = pojoField("fixedInt64ListField");
+      final Field SFIXED64_LIST_FIELD = pojoField("sFixedInt64ListField");
+      final Field STRING_LIST_FIELD = pojoField("stringListField");
+      final Field BYTES_LIST_FIELD = pojoField("bytesListField");
+      final Field MESSAGE_LIST_FIELD = pojoField("messageListField");
+
       List<PropertyDescriptor> properties = new ArrayList<PropertyDescriptor>(30);
       properties.add(new PropertyDescriptor(
               ENUM_FIELD, 1, WireFormat.FieldType.ENUM));
