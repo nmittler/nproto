@@ -118,7 +118,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       }
       lastFieldNumber = f.fieldNumber;
 
-      long offset = UnsafeUtil.fieldOffset(f.field);
+      long offset = UnsafeUtil.objectFieldOffset(f.field);
       writeTo.addField(f, offset);
       mergeFrom.addField(f, i, offset);
     }

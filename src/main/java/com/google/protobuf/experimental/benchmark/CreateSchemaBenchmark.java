@@ -1,7 +1,6 @@
 package com.google.protobuf.experimental.benchmark;
 
 import com.google.protobuf.experimental.PojoMessage;
-import com.google.protobuf.experimental.schema.AndroidGenericSchemaFactory;
 import com.google.protobuf.experimental.schema.AsmSchemaFactory;
 import com.google.protobuf.experimental.schema.GenericSchemaFactory;
 import com.google.protobuf.experimental.schema.HandwrittenSchemaFactory;
@@ -21,8 +20,6 @@ public class CreateSchemaBenchmark {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
     GENERIC(new GenericSchemaFactory()),
     GENERIC_NO_ANNOTATIONS(new GenericSchemaFactory(TestUtil.PojoDescriptorFactory.getInstance())),
-    ANDROID(new AndroidGenericSchemaFactory()),
-    ANDROID_NO_ANNOTATIONS(new AndroidGenericSchemaFactory(TestUtil.PojoDescriptorFactory.getInstance())),
     ASM(new AsmSchemaFactory()) {
       @Override
       byte[] createSchema() {

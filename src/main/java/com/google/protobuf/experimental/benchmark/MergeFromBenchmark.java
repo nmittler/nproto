@@ -1,14 +1,13 @@
 package com.google.protobuf.experimental.benchmark;
 
 import com.google.protobuf.experimental.PojoMessage;
-import com.google.protobuf.experimental.schema.AndroidGenericSchemaFactory;
+import com.google.protobuf.experimental.Reader;
 import com.google.protobuf.experimental.schema.AsmSchemaFactory;
 import com.google.protobuf.experimental.schema.GenericSchemaFactory;
 import com.google.protobuf.experimental.schema.HandwrittenSchemaFactory;
 import com.google.protobuf.experimental.schema.Schema;
 import com.google.protobuf.experimental.schema.SchemaFactory;
 import com.google.protobuf.experimental.util.TestUtil;
-import com.google.protobuf.experimental.Reader;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
@@ -22,7 +21,6 @@ public class MergeFromBenchmark {
   public enum SchemaType {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
     GENERIC(new GenericSchemaFactory()),
-    ANDROID(new AndroidGenericSchemaFactory()),
     ASM(new AsmSchemaFactory());
 
     SchemaType(SchemaFactory factory) {

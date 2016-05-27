@@ -43,7 +43,7 @@ final class GenericSchema<T> implements Schema<T> {
       }
       fieldMap.loadField(f, i, dataPos);
       UnsafeUtil.putLong(data, dataPos, (((long) f.type.id()) << 32) | f.fieldNumber);
-      UnsafeUtil.putLong(data, dataPos + LONG_LENGTH, UnsafeUtil.fieldOffset(f.field));
+      UnsafeUtil.putLong(data, dataPos + LONG_LENGTH, UnsafeUtil.objectFieldOffset(f.field));
       dataPos += FIELD_LENGTH;
     }
     dataLimit = DATA_OFFSET + (data.length * LONG_LENGTH);

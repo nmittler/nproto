@@ -1,14 +1,13 @@
 package com.google.protobuf.experimental.benchmark;
 
+import com.google.protobuf.experimental.ByteString;
 import com.google.protobuf.experimental.PojoMessage;
 import com.google.protobuf.experimental.Writer;
-import com.google.protobuf.experimental.schema.AndroidGenericSchemaFactory;
-import com.google.protobuf.experimental.schema.HandwrittenSchemaFactory;
-import com.google.protobuf.experimental.schema.Schema;
-import com.google.protobuf.experimental.ByteString;
-import com.google.protobuf.experimental.schema.SchemaFactory;
 import com.google.protobuf.experimental.schema.AsmSchemaFactory;
 import com.google.protobuf.experimental.schema.GenericSchemaFactory;
+import com.google.protobuf.experimental.schema.HandwrittenSchemaFactory;
+import com.google.protobuf.experimental.schema.Schema;
+import com.google.protobuf.experimental.schema.SchemaFactory;
 import com.google.protobuf.experimental.util.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -26,7 +25,6 @@ public class WriteToBenchmark {
   public enum SchemaType {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
     GENERIC(new GenericSchemaFactory()),
-    ANDROID(new AndroidGenericSchemaFactory()),
     ASM(new AsmSchemaFactory());
 
     SchemaType(SchemaFactory factory) {
