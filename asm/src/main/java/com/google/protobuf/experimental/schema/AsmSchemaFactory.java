@@ -89,7 +89,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
     try {
       @SuppressWarnings("unchecked")
       Class<Schema<T>> newClass = (Class<Schema<T>>)
-              classLoadingStrategy.loadClass(messageType.getName(), createSchemaClass(messageType));
+              classLoadingStrategy.loadClass(getSchemaClassName(messageType), createSchemaClass(messageType));
       return newClass.newInstance();
     } catch (InstantiationException e) {
       throw new RuntimeException(e);
@@ -109,7 +109,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
 
     ClassWriter cv = new ClassWriter(0);
     //ClassVisitor cv = new CheckClassAdapter(writer);
-    final String className = getSchemaClassName(messageType);
+    final String className = getSchemaClassName(messageType).replace('.', '/');
     cv.visit(V1_6, ACC_PUBLIC + ACC_FINAL, className, null, "java/lang/Object",
             new String[]{SCHEMA_INTERNAL_NAME});
     generateConstructor(cv);
@@ -285,7 +285,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
   }
 
   private static String getSchemaClassName(Class<?> messageType) {
-    return messageType.getName().replace('.', '/') + "Schema";
+    return messageType.getName() + "Schema";
   }
 
   private static final class FieldProcessor {
