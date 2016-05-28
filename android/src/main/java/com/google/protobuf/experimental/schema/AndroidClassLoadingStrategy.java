@@ -10,6 +10,7 @@ import com.android.dx.dex.file.DexFile;
 
 import dalvik.system.DexClassLoader;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -39,48 +40,78 @@ public class AndroidClassLoadingStrategy implements ClassLoadingStrategy {
    */
   private final RandomString randomString;
 
-  private final ClassLoader parentClassLoader = AndroidClassLoadingStrategy.class.getClassLoader();
+  private final ClassLoader parentClassLoader;
 
   /**
    * @param privateDirectory A directory that is <b>not shared with other applications</b> to be used for storing
    *                         generated classes and their processed forms.
    */
-  AndroidClassLoadingStrategy(File privateDirectory) {
+  public AndroidClassLoadingStrategy(ClassLoader parentClassLoader, File privateDirectory) {
     dexFileOptions.targetApiLevel=DEX_COMPATIBLE_API_VERSION;
     this.privateDirectory = privateDirectory;
+    this.parentClassLoader = parentClassLoader;
     randomString = new RandomString();
   }
 
   @Override
   public Class<?> loadClass(String name, byte[] binaryRepresentation) throws ClassNotFoundException {
+    DexFile dexFile = newDexFile(name, binaryRepresentation);
+    File jarFile = newJarFile();
+    try {
+      writeDexToJar(dexFile, jarFile);
+      return loadClassFromJar(name, jarFile);
+    } catch (IOException exception) {
+      throw new IllegalStateException("Cannot write to zip file " + jarFile, exception);
+    } finally {
+      if (!jarFile.delete()) {
+        Logger.getAnonymousLogger().warning("Could not delete " + jarFile);
+      }
+    }
+  }
+
+  private File newJarFile() {
+    File jarFile = new File(privateDirectory, randomString.nextString() + JAR_FILE_EXTENSION);
+    try {
+      if (!jarFile.createNewFile()) {
+        throw new IllegalStateException("Cannot create " + jarFile);
+      }
+      return jarFile;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private DexFile newDexFile(String name, byte[] binaryRepresentation) {
     DexFile dexFile = new DexFile(dexFileOptions);
     dexFile.add(CfTranslator.translate(name.replace('.', '/') + CLASS_FILE_EXTENSION,
             binaryRepresentation,
             dexCompilerOptions,
             dexFileOptions));
+    return dexFile;
+  }
 
-    File zipFile = new File(privateDirectory, randomString.nextString() + JAR_FILE_EXTENSION);
+  private void writeDexToJar(DexFile dexFile, File jarFile) throws IOException {
+    JarOutputStream zipOutputStream = new JarOutputStream(new FileOutputStream(jarFile));
     try {
-      if (!zipFile.createNewFile()) {
-        throw new IllegalStateException("Cannot create " + zipFile);
-      }
-      JarOutputStream zipOutputStream = new JarOutputStream(new FileOutputStream(zipFile));
-      try {
-        zipOutputStream.putNextEntry(new JarEntry(DEX_CLASS_FILE));
-        dexFile.writeTo(zipOutputStream, null, false);
-        zipOutputStream.closeEntry();
-      } finally {
-        zipOutputStream.close();
-      }
-      ClassLoader dexClassLoader = new DexClassLoader(zipFile.getAbsolutePath(),
-              privateDirectory.getAbsolutePath(), null, parentClassLoader);
-      return dexClassLoader.loadClass(name);
-    } catch (IOException exception) {
-      throw new IllegalStateException("Cannot write to zip file " + zipFile, exception);
+      zipOutputStream.putNextEntry(new JarEntry(DEX_CLASS_FILE));
+      dexFile.writeTo(zipOutputStream, null, false);
+      zipOutputStream.closeEntry();
     } finally {
-      if (!zipFile.delete()) {
-        Logger.getAnonymousLogger().warning("Could not delete " + zipFile);
-      }
+      close(zipOutputStream);
+    }
+  }
+
+  private Class<?> loadClassFromJar(String name, File jarFile) throws ClassNotFoundException {
+    ClassLoader dexClassLoader = new DexClassLoader(jarFile.getAbsolutePath(),
+            privateDirectory.getAbsolutePath(), null, parentClassLoader);
+    return dexClassLoader.loadClass(name);
+  }
+
+  private static void close(Closeable obj) {
+    try {
+      obj.close();
+    } catch (IOException e) {
+      // Absorb.
     }
   }
 }
