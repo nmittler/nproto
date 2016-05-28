@@ -62,9 +62,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
     }
   }
 
-  private static final GeneratedClassLoader CL =
-          new GeneratedClassLoader(AsmSchemaFactory.class.getClassLoader());
-
+  private final ClassLoadingStrategy classLoadingStrategy;
   private final BeanDescriptorFactory beanDescriptorFactory;
 
   public AsmSchemaFactory() {
@@ -72,22 +70,32 @@ public final class AsmSchemaFactory implements SchemaFactory {
   }
 
   public AsmSchemaFactory(BeanDescriptorFactory beanDescriptorFactory) {
+    this(ForwardingClassLoadingStrategy.getInstance(), beanDescriptorFactory);
+  }
+
+  public AsmSchemaFactory(ClassLoadingStrategy classLoadingStrategy, BeanDescriptorFactory beanDescriptorFactory) {
+    if (classLoadingStrategy == null) {
+      throw new NullPointerException("classLoadingStrategy");
+    }
     if (beanDescriptorFactory == null) {
       throw new NullPointerException("beanDescriptorFactory");
     }
+    this.classLoadingStrategy = classLoadingStrategy;
     this.beanDescriptorFactory = beanDescriptorFactory;
   }
 
   @Override
   public <T> Schema<T> createSchema(Class<T> messageType) {
-
     try {
       @SuppressWarnings("unchecked")
-      Class<Schema<T>> newClass = (Class<Schema<T>>) CL.defineClass(createSchemaClass(messageType));
+      Class<Schema<T>> newClass = (Class<Schema<T>>)
+              classLoadingStrategy.loadClass(messageType.getName(), createSchemaClass(messageType));
       return newClass.newInstance();
     } catch (InstantiationException e) {
       throw new RuntimeException(e);
     } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
@@ -278,16 +286,6 @@ public final class AsmSchemaFactory implements SchemaFactory {
 
   private static String getSchemaClassName(Class<?> messageType) {
     return messageType.getName().replace('.', '/') + "Schema";
-  }
-
-  private static final class GeneratedClassLoader extends ClassLoader {
-    GeneratedClassLoader(ClassLoader parent) {
-      super(parent);
-    }
-
-    Class<?> defineClass(byte[] bytes) {
-      return defineClass(null, bytes, 0, bytes.length);
-    }
   }
 
   private static final class FieldProcessor {

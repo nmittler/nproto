@@ -11,6 +11,12 @@ public class ForwardingClassLoadingStrategy implements ClassLoadingStrategy {
   private static final GeneratedClassLoader CLASS_LOADER =
           new GeneratedClassLoader(ForwardingClassLoadingStrategy.class.getClassLoader());
 
+  private static final ForwardingClassLoadingStrategy INSTANCE = new ForwardingClassLoadingStrategy();
+
+  public static ForwardingClassLoadingStrategy getInstance() {
+    return INSTANCE;
+  }
+
   @Override
   public Class<?> loadClass(String name, byte[] binaryRepresentation) {
     return CLASS_LOADER.defineClass(binaryRepresentation);
