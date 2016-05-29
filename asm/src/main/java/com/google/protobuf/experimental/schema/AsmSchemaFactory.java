@@ -3,8 +3,11 @@ package com.google.protobuf.experimental.schema;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ALOAD;
+import static org.objectweb.asm.Opcodes.ASTORE;
+import static org.objectweb.asm.Opcodes.CHECKCAST;
 import static org.objectweb.asm.Opcodes.DUP;
 import static org.objectweb.asm.Opcodes.F_SAME;
+import static org.objectweb.asm.Opcodes.GETFIELD;
 import static org.objectweb.asm.Opcodes.GOTO;
 import static org.objectweb.asm.Opcodes.IFNE;
 import static org.objectweb.asm.Opcodes.IF_ICMPEQ;
@@ -70,7 +73,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
   }
 
   public AsmSchemaFactory(BeanDescriptorFactory beanDescriptorFactory) {
-    this(ForwardingClassLoadingStrategy.getInstance(), beanDescriptorFactory);
+    this(new InjectionClassLoadingStrategy(), beanDescriptorFactory);
   }
 
   public AsmSchemaFactory(ClassLoadingStrategy classLoadingStrategy, BeanDescriptorFactory beanDescriptorFactory) {
@@ -89,13 +92,13 @@ public final class AsmSchemaFactory implements SchemaFactory {
     try {
       @SuppressWarnings("unchecked")
       Class<Schema<T>> newClass = (Class<Schema<T>>)
-              classLoadingStrategy.loadClass(getSchemaClassName(messageType), createSchemaClass(messageType));
+              classLoadingStrategy.loadSchemaClass(messageType,
+                      getSchemaClassName(messageType),
+                      createSchemaClass(messageType));
       return newClass.newInstance();
     } catch (InstantiationException e) {
       throw new RuntimeException(e);
     } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
@@ -109,13 +112,15 @@ public final class AsmSchemaFactory implements SchemaFactory {
 
     ClassWriter cv = new ClassWriter(0);
     //ClassVisitor cv = new CheckClassAdapter(writer);
-    final String className = getSchemaClassName(messageType).replace('.', '/');
-    cv.visit(V1_6, ACC_PUBLIC + ACC_FINAL, className, null, "java/lang/Object",
+    final String messageClassName = getInternalName(messageType);
+    final String schemaClassName = getSchemaClassName(messageType).replace('.', '/');
+    cv.visit(V1_6, ACC_PUBLIC + ACC_FINAL, schemaClassName, null, "java/lang/Object",
             new String[]{SCHEMA_INTERNAL_NAME});
     generateConstructor(cv);
 
+    final boolean packagePrivateAccessSupported = classLoadingStrategy.isPackagePrivateAccessSupported();
     List<PropertyDescriptor> fields = beanDescriptorFactory.descriptorFor(messageType).getPropertyDescriptors();
-    WriteToGenerator writeTo = new WriteToGenerator(cv);
+    WriteToGenerator writeTo = new WriteToGenerator(cv, messageClassName);
     MergeFromGenerator mergeFrom = new MergeFromGenerator(cv, fields);
     int lastFieldNumber = Integer.MAX_VALUE;
     for (int i = 0; i < fields.size(); ++i) {
@@ -127,7 +132,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       lastFieldNumber = f.fieldNumber;
 
       long offset = UnsafeUtil.objectFieldOffset(f.field);
-      writeTo.addField(f, offset);
+      writeTo.addField(f, offset, packagePrivateAccessSupported);
       mergeFrom.addField(f, i, offset);
     }
     writeTo.end();
@@ -150,14 +155,21 @@ public final class AsmSchemaFactory implements SchemaFactory {
 
   private static final class WriteToGenerator {
     private final MethodVisitor mv;
+    private final String messageClassName;
 
-    WriteToGenerator(ClassVisitor cv) {
+    WriteToGenerator(ClassVisitor cv, String messageClassName) {
       mv = cv.visitMethod(ACC_PUBLIC, "writeTo", WRITE_TO_DESCRIPTOR, null, null);
       mv.visitCode();
+
+      // Cast the message to the concrete type.
+      this.messageClassName = messageClassName;
+      mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
+      mv.visitTypeInsn(CHECKCAST, messageClassName);
+      mv.visitVarInsn(ASTORE, MESSAGE_INDEX);
     }
 
-    void addField(PropertyDescriptor field, long offset) {
-      FIELD_PROCESSORS[field.type.ordinal()].write(mv, field.fieldNumber, offset);
+    void addField(PropertyDescriptor property, long offset, boolean packagePrivateAccessSupported) {
+      FIELD_PROCESSORS[property.type.ordinal()].write(messageClassName, mv, property, offset, packagePrivateAccessSupported);
     }
 
     void end() {
@@ -289,8 +301,10 @@ public final class AsmSchemaFactory implements SchemaFactory {
   }
 
   private static final class FieldProcessor {
-    private final String writeMethodName;
-    private final String readMethodName;
+    private final String unsafeWriteMethodName;
+    private final String safeWriteMethodName;
+    private final String safeWriteMethodDescriptor;
+    private final String unsafeReadMethodName;
     private final WriteType writeType;
 
     private enum WriteType {
@@ -306,144 +320,212 @@ public final class AsmSchemaFactory implements SchemaFactory {
               WriteType.LIST : (jtype == JavaType.ENUM) ? WriteType.ENUM : WriteType.STANDARD;
       switch (propertyType) {
         case DOUBLE:
-          writeMethodName = "unsafeWriteDouble";
-          readMethodName = "unsafeReadDouble";
+          unsafeWriteMethodName = "unsafeWriteDouble";
+          safeWriteMethodName = "writeDouble";
+          safeWriteMethodDescriptor = "(IDL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadDouble";
           break;
         case FLOAT:
-          writeMethodName = "unsafeWriteFloat";
-          readMethodName = "unsafeReadFloat";
+          unsafeWriteMethodName = "unsafeWriteFloat";
+          safeWriteMethodName = "writeFloat";
+          safeWriteMethodDescriptor = "(IFL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadFloat";
           break;
         case INT64:
-          writeMethodName = "unsafeWriteInt64";
-          readMethodName = "unsafeReadInt64";
+          unsafeWriteMethodName = "unsafeWriteInt64";
+          safeWriteMethodName = "writeInt64";
+          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadInt64";
           break;
         case UINT64:
-          writeMethodName = "unsafeWriteUInt64";
-          readMethodName = "unsafeReadUInt64";
+          unsafeWriteMethodName = "unsafeWriteUInt64";
+          safeWriteMethodName = "writeUInt64";
+          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadUInt64";
           break;
         case INT32:
-          writeMethodName = "unsafeWriteInt32";
-          readMethodName = "unsafeReadInt32";
+          unsafeWriteMethodName = "unsafeWriteInt32";
+          safeWriteMethodName = "writeInt32";
+          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadInt32";
           break;
         case FIXED64:
-          writeMethodName = "unsafeWriteFixed64";
-          readMethodName = "unsafeReadFixed64";
+          unsafeWriteMethodName = "unsafeWriteFixed64";
+          safeWriteMethodName = "writeFixed64";
+          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadFixed64";
           break;
         case FIXED32:
-          writeMethodName = "unsafeWriteFixed32";
-          readMethodName = "unsafeReadFixed32";
+          unsafeWriteMethodName = "unsafeWriteFixed32";
+          safeWriteMethodName = "writeFixed32";
+          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadFixed32";
           break;
         case BOOL:
-          writeMethodName = "unsafeWriteBool";
-          readMethodName = "unsafeReadBool";
+          unsafeWriteMethodName = "unsafeWriteBool";
+          safeWriteMethodName = "writeBool";
+          safeWriteMethodDescriptor = "(IZL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadBool";
           break;
         case STRING:
-          writeMethodName = "unsafeWriteString";
-          readMethodName = "unsafeReadString";
+          unsafeWriteMethodName = "unsafeWriteString";
+          safeWriteMethodName = "writeString";
+          safeWriteMethodDescriptor = "(ILjava/lang/String;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadString";
           break;
         case MESSAGE:
-          writeMethodName = "unsafeWriteMessage";
-          readMethodName = "unsafeReadMessage";
+          unsafeWriteMethodName = "unsafeWriteMessage";
+          safeWriteMethodName = "writeMessage";
+          safeWriteMethodDescriptor = "(ILjava/lang/Object;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadMessage";
           break;
         case BYTES:
-          writeMethodName = "unsafeWriteBytes";
-          readMethodName = "unsafeReadBytes";
+          unsafeWriteMethodName = "unsafeWriteBytes";
+          safeWriteMethodName = "writeBytes";
+          safeWriteMethodDescriptor = "(ILcom/google/protobuf/experimental/ByteString;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadBytes";
           break;
         case UINT32:
-          writeMethodName = "unsafeWriteUInt32";
-          readMethodName = "unsafeReadUInt32";
+          unsafeWriteMethodName = "unsafeWriteUInt32";
+          safeWriteMethodName = "writeUInt32";
+          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadUInt32";
           break;
         case ENUM:
-          writeMethodName = "unsafeWriteEnum";
-          readMethodName = "unsafeReadEnum";
+          unsafeWriteMethodName = "unsafeWriteEnum";
+          safeWriteMethodName = "writeEnum";
+          safeWriteMethodDescriptor = "(ILjava/lang/Enum;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadEnum";
           break;
         case SFIXED32:
-          writeMethodName = "unsafeWriteSFixed32";
-          readMethodName = "unsafeReadSFixed32";
+          unsafeWriteMethodName = "unsafeWriteSFixed32";
+          safeWriteMethodName = "writeSFixed32";
+          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadSFixed32";
           break;
         case SFIXED64:
-          writeMethodName = "unsafeWriteSFixed64";
-          readMethodName = "unsafeReadSFixed64";
+          unsafeWriteMethodName = "unsafeWriteSFixed64";
+          safeWriteMethodName = "writeSFixed64";
+          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadSFixed64";
           break;
         case SINT32:
-          writeMethodName = "unsafeWriteSInt32";
-          readMethodName = "unsafeReadSInt32";
+          unsafeWriteMethodName = "unsafeWriteSInt32";
+          safeWriteMethodName = "writeSInt32";
+          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadSInt32";
           break;
         case SINT64:
-          writeMethodName = "unsafeWriteSInt64";
-          readMethodName = "unsafeReadSInt64";
+          unsafeWriteMethodName = "unsafeWriteSInt64";
+          safeWriteMethodName = "writeSInt64";
+          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadSInt64";
           break;
         case DOUBLE_LIST:
-          writeMethodName = "unsafeWriteDoubleList";
-          readMethodName = "unsafeReadDoubleList";
+          unsafeWriteMethodName = "unsafeWriteDoubleList";
+          safeWriteMethodName = "writeDoubleList";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadDoubleList";
           break;
         case FLOAT_LIST:
-          writeMethodName = "unsafeWriteFloatList";
-          readMethodName = "unsafeReadFloatList";
+          unsafeWriteMethodName = "unsafeWriteFloatList";
+          safeWriteMethodName = "writeFloatList";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadFloatList";
           break;
         case INT64_LIST:
-          writeMethodName = "unsafeWriteInt64List";
-          readMethodName = "unsafeReadInt64List";
+          unsafeWriteMethodName = "unsafeWriteInt64List";
+          safeWriteMethodName = "writeInt64List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadInt64List";
           break;
         case UINT64_LIST:
-          writeMethodName = "unsafeWriteUInt64List";
-          readMethodName = "unsafeReadUInt64List";
+          unsafeWriteMethodName = "unsafeWriteUInt64List";
+          safeWriteMethodName = "writeUInt64List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadUInt64List";
           break;
         case INT32_LIST:
-          writeMethodName = "unsafeWriteInt32List";
-          readMethodName = "unsafeReadInt32List";
+          unsafeWriteMethodName = "unsafeWriteInt32List";
+          safeWriteMethodName = "writeInt32List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadInt32List";
           break;
         case FIXED64_LIST:
-          writeMethodName = "unsafeWriteFixed64List";
-          readMethodName = "unsafeReadFixed64List";
+          unsafeWriteMethodName = "unsafeWriteFixed64List";
+          safeWriteMethodName = "writeFixed64List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadFixed64List";
           break;
         case FIXED32_LIST:
-          writeMethodName = "unsafeWriteFixed32List";
-          readMethodName = "unsafeReadFixed32List";
+          unsafeWriteMethodName = "unsafeWriteFixed32List";
+          safeWriteMethodName = "writeFixed32List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadFixed32List";
           break;
         case BOOL_LIST:
-          writeMethodName = "unsafeWriteBoolList";
-          readMethodName = "unsafeReadBoolList";
+          unsafeWriteMethodName = "unsafeWriteBoolList";
+          safeWriteMethodName = "writeBoolList";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadBoolList";
           break;
         case STRING_LIST:
-          writeMethodName = "unsafeWriteStringList";
-          readMethodName = "unsafeReadStringList";
+          unsafeWriteMethodName = "unsafeWriteStringList";
+          safeWriteMethodName = "writeStringList";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadStringList";
           writeType = WriteType.STANDARD;
           break;
         case MESSAGE_LIST:
-          writeMethodName = "unsafeWriteMessageList";
-          readMethodName = "unsafeReadMessageList";
+          unsafeWriteMethodName = "unsafeWriteMessageList";
+          safeWriteMethodName = "writeMessageList";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadMessageList";
           writeType = WriteType.STANDARD;
           break;
         case BYTES_LIST:
-          writeMethodName = "unsafeWriteBytesList";
-          readMethodName = "unsafeReadBytesList";
+          unsafeWriteMethodName = "unsafeWriteBytesList";
+          safeWriteMethodName = "writeBytesList";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadBytesList";
           writeType = WriteType.STANDARD;
           break;
         case UINT32_LIST:
-          writeMethodName = "unsafeWriteUInt32List";
-          readMethodName = "unsafeReadUInt32List";
+          unsafeWriteMethodName = "unsafeWriteUInt32List";
+          safeWriteMethodName = "writeUInt32List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadUInt32List";
           break;
         case ENUM_LIST:
-          writeMethodName = "unsafeWriteEnumList";
-          readMethodName = "unsafeReadEnumList";
+          unsafeWriteMethodName = "unsafeWriteEnumList";
+          safeWriteMethodName = "writeEnumList";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadEnumList";
           writeType = WriteType.ENUM_LIST;
           break;
         case SFIXED32_LIST:
-          writeMethodName = "unsafeWriteSFixed32List";
-          readMethodName = "unsafeReadSFixed32List";
+          unsafeWriteMethodName = "unsafeWriteSFixed32List";
+          safeWriteMethodName = "writeSFixed32List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadSFixed32List";
           break;
         case SFIXED64_LIST:
-          writeMethodName = "unsafeWriteSFixed64List";
-          readMethodName = "unsafeReadSFixed64List";
+          unsafeWriteMethodName = "unsafeWriteSFixed64List";
+          safeWriteMethodName = "writeSFixed64List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadSFixed64List";
           break;
         case SINT32_LIST:
-          writeMethodName = "unsafeWriteSInt32List";
-          readMethodName = "unsafeReadSInt32List";
+          unsafeWriteMethodName = "unsafeWriteSInt32List";
+          safeWriteMethodName = "writeSInt32List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadSInt32List";
           break;
         case SINT64_LIST:
-          writeMethodName = "unsafeWriteSInt64List";
-          readMethodName = "unsafeReadSInt64List";
+          unsafeWriteMethodName = "unsafeWriteSInt64List";
+          safeWriteMethodName = "writeSInt64List";
+          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
+          unsafeReadMethodName = "unsafeReadSInt64List";
           break;
         default:
           throw new IllegalArgumentException("Unsupported FieldType: " + propertyType);
@@ -451,28 +533,50 @@ public final class AsmSchemaFactory implements SchemaFactory {
       this.writeType = writeType;
     }
 
-    void write(MethodVisitor mv, int fieldNumber, long offset) {
+    void write(String messageClassName, MethodVisitor mv, PropertyDescriptor property, long offset, boolean packagePrivateAccessSupported) {
       switch (writeType) {
         case STANDARD:
-          unsafeWrite(mv, fieldNumber, offset);
+          if (isReadable(packagePrivateAccessSupported, property)) {
+            safeWrite(messageClassName, mv, property);
+          } else {
+            unsafeWrite(mv, property.fieldNumber, offset);
+          }
           break;
         case ENUM:
-          unsafeWriteEnum(mv, fieldNumber, offset);
+          if (isReadable(packagePrivateAccessSupported, property)) {
+            safeWrite(messageClassName, mv, property);
+          } else {
+            unsafeWriteEnum(mv, property.fieldNumber, offset);
+          }
           break;
         case ENUM_LIST:
-          unsafeWriteEnumList(mv, fieldNumber, offset);
+          if (isReadable(packagePrivateAccessSupported, property)) {
+            safeWrite(messageClassName, mv, property);
+          } else {
+            unsafeWriteEnumList(mv, property.fieldNumber, offset);
+          }
           break;
         case LIST:
-          unsafeWriteList(mv, fieldNumber, offset);
+          if (isReadable(packagePrivateAccessSupported, property)) {
+            safeWrite(messageClassName, mv, property);
+          } else {
+            unsafeWriteList(mv, property.fieldNumber, offset);
+          }
           break;
       }
+    }
+
+    private static boolean isReadable(boolean packagePrivateAccessSupported, PropertyDescriptor property) {
+      int mod = property.field.getModifiers();
+      return Modifier.isPublic(mod) ||
+              (packagePrivateAccessSupported && !Modifier.isPrivate(mod));
     }
 
     void read(MethodVisitor mv, long offset) {
       mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, READER_INDEX);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, readMethodName,
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeReadMethodName,
               "(Ljava/lang/Object;JLcom/google/protobuf/experimental/Reader;)V", false);
     }
 
@@ -482,7 +586,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
       mv.visitLdcInsn(ENUM_TYPE);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, writeMethodName,
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeWriteMethodName,
               "(ILjava/lang/Object;JLcom/google/protobuf/experimental/Writer;Ljava/lang/Class;)V", false);
     }
 
@@ -491,8 +595,21 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, writeMethodName,
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeWriteMethodName,
               "(ILjava/lang/Object;JLcom/google/protobuf/experimental/Writer;)V", false);
+    }
+
+    private void safeWrite(String messageClassName, MethodVisitor mv, PropertyDescriptor property) {
+      mv.visitLdcInsn(property.fieldNumber);
+
+      // Get the field value.
+      mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
+      mv.visitFieldInsn(GETFIELD, messageClassName, property.field.getName(),
+              Type.getDescriptor(property.field.getType()));
+
+      mv.visitVarInsn(ALOAD, WRITER_INDEX);
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, safeWriteMethodName,
+              safeWriteMethodDescriptor, false);
     }
 
     private void unsafeWriteList(MethodVisitor mv, int fieldNumber, long offset) {
@@ -500,7 +617,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, writeMethodName,
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeWriteMethodName,
               "(ILjava/lang/Object;JLcom/google/protobuf/experimental/Writer;)V", false);
     }
 
@@ -510,7 +627,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
       mv.visitLdcInsn(ENUM_TYPE);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, writeMethodName,
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeWriteMethodName,
               "(ILjava/lang/Object;JLcom/google/protobuf/experimental/Writer;Ljava/lang/Class;)V", false);
     }
   }

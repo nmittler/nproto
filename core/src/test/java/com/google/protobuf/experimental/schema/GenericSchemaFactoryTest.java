@@ -1,6 +1,6 @@
 package com.google.protobuf.experimental.schema;
 
-import com.google.protobuf.experimental.PojoMessage;
+import com.google.protobuf.experimental.example.PojoMessage;
 
 public class GenericSchemaFactoryTest extends AbstractSchemaFactoryTest {
   private static final Schema<PojoMessage> SCHEMA =

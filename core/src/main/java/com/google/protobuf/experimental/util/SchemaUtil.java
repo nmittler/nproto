@@ -86,7 +86,7 @@ public final class SchemaUtil {
     }
   }
 
-  private static <E extends Enum<E>> void writeEnum(int fieldNumber, E value, Writer writer) {
+  public static <E extends Enum<E>> void writeEnum(int fieldNumber, E value, Writer writer) {
     if (value != null) {
       writer.writeEnum(fieldNumber, value);
     }
@@ -188,7 +188,7 @@ public final class SchemaUtil {
     }
   }
 
-  private static <E extends Enum<E>> void writeEnumList(int fieldNumber, List<E> value, Writer writer) {
+  public static <E extends Enum<E>> void writeEnumList(int fieldNumber, List<E> value, Writer writer) {
     if (value != null && !value.isEmpty()) {
       writer.writeEnumList(fieldNumber, value);
     }

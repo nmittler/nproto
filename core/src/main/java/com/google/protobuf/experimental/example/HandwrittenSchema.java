@@ -1,9 +1,10 @@
-package com.google.protobuf.experimental.schema;
+package com.google.protobuf.experimental.example;
 
 import com.google.protobuf.experimental.ByteString;
-import com.google.protobuf.experimental.PojoMessage;
 import com.google.protobuf.experimental.Reader;
 import com.google.protobuf.experimental.Writer;
+import com.google.protobuf.experimental.schema.Field;
+import com.google.protobuf.experimental.schema.Schema;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -12,7 +13,7 @@ final class HandwrittenSchema implements Schema<PojoMessage> {
   @Override
   public void writeTo(PojoMessage message, Writer writer) {
     writer.writeEnum(1, message.enumField);
-    writer.writeBool(2, message.boolField);
+    writer.writeBool(2, message.isBoolField());
     writer.writeUInt32(3, message.uint32Field);
     writer.writeInt32(4, message.int32Field);
     writer.writeSInt32(5, message.sInt32Field);
@@ -86,7 +87,7 @@ final class HandwrittenSchema implements Schema<PojoMessage> {
           message.enumField = PojoMessage.MyEnum.class.cast(reader.readEnum());
           break;
         case 2:
-          message.boolField = reader.readBool();
+          message.setBoolField(reader.readBool());
           break;
         case 3:
           message.uint32Field = reader.readUInt32();

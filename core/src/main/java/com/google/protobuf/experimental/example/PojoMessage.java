@@ -1,5 +1,7 @@
-package com.google.protobuf.experimental;
+package com.google.protobuf.experimental.example;
 
+import com.google.protobuf.experimental.ByteString;
+import com.google.protobuf.experimental.ProtoField;
 import com.google.protobuf.experimental.WireFormat.FieldType;
 
 import java.util.List;
@@ -10,11 +12,17 @@ public final class PojoMessage {
     VALUE2
   }
 
+  /**
+   * Test a package-private field.
+   */
   @ProtoField(number = 1, type = FieldType.ENUM)
-  public MyEnum enumField;
+  MyEnum enumField;
 
+  /**
+   * Test a private field.
+   */
   @ProtoField(number = 2, type = FieldType.BOOL)
-  public boolean boolField;
+  private boolean boolField;
 
   @ProtoField(number = 3, type = FieldType.UINT32)
   public int uint32Field;
@@ -99,6 +107,246 @@ public final class PojoMessage {
 
   @ProtoField(number = 30, type = FieldType.MESSAGE)
   public List<Object> messageListField;
+
+  public MyEnum getEnumField() {
+    return enumField;
+  }
+
+  public void setEnumField(MyEnum enumField) {
+    this.enumField = enumField;
+  }
+
+  public boolean isBoolField() {
+    return boolField;
+  }
+
+  public void setBoolField(boolean boolField) {
+    this.boolField = boolField;
+  }
+
+  public int getUint32Field() {
+    return uint32Field;
+  }
+
+  public void setUint32Field(int uint32Field) {
+    this.uint32Field = uint32Field;
+  }
+
+  public int getInt32Field() {
+    return int32Field;
+  }
+
+  public void setInt32Field(int int32Field) {
+    this.int32Field = int32Field;
+  }
+
+  public int getsInt32Field() {
+    return sInt32Field;
+  }
+
+  public void setsInt32Field(int sInt32Field) {
+    this.sInt32Field = sInt32Field;
+  }
+
+  public int getFixedInt32Field() {
+    return fixedInt32Field;
+  }
+
+  public void setFixedInt32Field(int fixedInt32Field) {
+    this.fixedInt32Field = fixedInt32Field;
+  }
+
+  public int getsFixedInt32Field() {
+    return sFixedInt32Field;
+  }
+
+  public void setsFixedInt32Field(int sFixedInt32Field) {
+    this.sFixedInt32Field = sFixedInt32Field;
+  }
+
+  public long getUint64Field() {
+    return uint64Field;
+  }
+
+  public void setUint64Field(long uint64Field) {
+    this.uint64Field = uint64Field;
+  }
+
+  public long getInt64Field() {
+    return int64Field;
+  }
+
+  public void setInt64Field(long int64Field) {
+    this.int64Field = int64Field;
+  }
+
+  public long getsInt64Field() {
+    return sInt64Field;
+  }
+
+  public void setsInt64Field(long sInt64Field) {
+    this.sInt64Field = sInt64Field;
+  }
+
+  public long getFixedInt64Field() {
+    return fixedInt64Field;
+  }
+
+  public void setFixedInt64Field(long fixedInt64Field) {
+    this.fixedInt64Field = fixedInt64Field;
+  }
+
+  public long getsFixedInt64Field() {
+    return sFixedInt64Field;
+  }
+
+  public void setsFixedInt64Field(long sFixedInt64Field) {
+    this.sFixedInt64Field = sFixedInt64Field;
+  }
+
+  public String getStringField() {
+    return stringField;
+  }
+
+  public void setStringField(String stringField) {
+    this.stringField = stringField;
+  }
+
+  public ByteString getBytesField() {
+    return bytesField;
+  }
+
+  public void setBytesField(ByteString bytesField) {
+    this.bytesField = bytesField;
+  }
+
+  public Object getMessageField() {
+    return messageField;
+  }
+
+  public void setMessageField(Object messageField) {
+    this.messageField = messageField;
+  }
+
+  public List<MyEnum> getEnumListField() {
+    return enumListField;
+  }
+
+  public void setEnumListField(List<MyEnum> enumListField) {
+    this.enumListField = enumListField;
+  }
+
+  public List<Boolean> getBoolListField() {
+    return boolListField;
+  }
+
+  public void setBoolListField(List<Boolean> boolListField) {
+    this.boolListField = boolListField;
+  }
+
+  public List<Integer> getUint32ListField() {
+    return uint32ListField;
+  }
+
+  public void setUint32ListField(List<Integer> uint32ListField) {
+    this.uint32ListField = uint32ListField;
+  }
+
+  public List<Integer> getInt32ListField() {
+    return int32ListField;
+  }
+
+  public void setInt32ListField(List<Integer> int32ListField) {
+    this.int32ListField = int32ListField;
+  }
+
+  public List<Integer> getsInt32ListField() {
+    return sInt32ListField;
+  }
+
+  public void setsInt32ListField(List<Integer> sInt32ListField) {
+    this.sInt32ListField = sInt32ListField;
+  }
+
+  public List<Integer> getFixedInt32ListField() {
+    return fixedInt32ListField;
+  }
+
+  public void setFixedInt32ListField(List<Integer> fixedInt32ListField) {
+    this.fixedInt32ListField = fixedInt32ListField;
+  }
+
+  public List<Integer> getsFixedInt32ListField() {
+    return sFixedInt32ListField;
+  }
+
+  public void setsFixedInt32ListField(List<Integer> sFixedInt32ListField) {
+    this.sFixedInt32ListField = sFixedInt32ListField;
+  }
+
+  public List<Long> getUint64ListField() {
+    return uint64ListField;
+  }
+
+  public void setUint64ListField(List<Long> uint64ListField) {
+    this.uint64ListField = uint64ListField;
+  }
+
+  public List<Long> getInt64ListField() {
+    return int64ListField;
+  }
+
+  public void setInt64ListField(List<Long> int64ListField) {
+    this.int64ListField = int64ListField;
+  }
+
+  public List<Long> getsInt64ListField() {
+    return sInt64ListField;
+  }
+
+  public void setsInt64ListField(List<Long> sInt64ListField) {
+    this.sInt64ListField = sInt64ListField;
+  }
+
+  public List<Long> getFixedInt64ListField() {
+    return fixedInt64ListField;
+  }
+
+  public void setFixedInt64ListField(List<Long> fixedInt64ListField) {
+    this.fixedInt64ListField = fixedInt64ListField;
+  }
+
+  public List<Long> getsFixedInt64ListField() {
+    return sFixedInt64ListField;
+  }
+
+  public void setsFixedInt64ListField(List<Long> sFixedInt64ListField) {
+    this.sFixedInt64ListField = sFixedInt64ListField;
+  }
+
+  public List<String> getStringListField() {
+    return stringListField;
+  }
+
+  public void setStringListField(List<String> stringListField) {
+    this.stringListField = stringListField;
+  }
+
+  public List<ByteString> getBytesListField() {
+    return bytesListField;
+  }
+
+  public void setBytesListField(List<ByteString> bytesListField) {
+    this.bytesListField = bytesListField;
+  }
+
+  public List<Object> getMessageListField() {
+    return messageListField;
+  }
+
+  public void setMessageListField(List<Object> messageListField) {
+    this.messageListField = messageListField;
+  }
 
   @Override
   public boolean equals(Object o) {

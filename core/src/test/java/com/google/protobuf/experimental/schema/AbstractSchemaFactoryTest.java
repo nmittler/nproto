@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import com.google.protobuf.experimental.ByteString;
-import com.google.protobuf.experimental.PojoMessage;
+import com.google.protobuf.experimental.example.PojoMessage;
 import com.google.protobuf.experimental.Reader;
 import com.google.protobuf.experimental.Writer;
 import com.google.protobuf.experimental.descriptor.PropertyType;
@@ -37,7 +37,7 @@ public abstract class AbstractSchemaFactoryTest {
         case 1:
           Assert.assertEquals(PropertyType.ENUM, f.type());
           assertNull(f.enumValue(msg, PojoMessage.MyEnum.class));
-          msg.enumField = PojoMessage.MyEnum.VALUE1;
+          msg.setEnumField(PojoMessage.MyEnum.VALUE1);
           assertEquals(PojoMessage.MyEnum.VALUE1, f.enumValue(msg, PojoMessage.MyEnum.class));
           break;
         case 2:

@@ -1,9 +1,9 @@
 package com.google.protobuf.experimental;
 
-/**
- * Created by nathanmittler on 5/12/16.
- */
-public class WireFormat {
+public final class WireFormat {
+  private WireFormat() {
+  }
+
   public static final int WIRETYPE_VARINT           = 0;
   public static final int WIRETYPE_FIXED64          = 1;
   public static final int WIRETYPE_LENGTH_DELIMITED = 2;

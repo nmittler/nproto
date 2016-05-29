@@ -4,22 +4,22 @@ import com.google.protobuf.experimental.Internal;
 
 /**
  * Class loading strategy that uses a single child {@link ClassLoader} of the one used to load this
- * class.
+ * class. Schemas loaded by this strategy will not have package-private access to the message
+ * even though they were created in the same package. To enable package-private access,
  */
 @Internal
 public class ForwardingClassLoadingStrategy implements ClassLoadingStrategy {
-  private static final GeneratedClassLoader CLASS_LOADER =
+  private final GeneratedClassLoader classLoader =
           new GeneratedClassLoader(ForwardingClassLoadingStrategy.class.getClassLoader());
 
-  private static final ForwardingClassLoadingStrategy INSTANCE = new ForwardingClassLoadingStrategy();
-
-  public static ForwardingClassLoadingStrategy getInstance() {
-    return INSTANCE;
+  @Override
+  public Class<?> loadSchemaClass(Class<?> messageClass, String name, byte[] binaryRepresentation) {
+    return classLoader.defineClass(binaryRepresentation);
   }
 
   @Override
-  public Class<?> loadClass(String name, byte[] binaryRepresentation) {
-    return CLASS_LOADER.defineClass(binaryRepresentation);
+  public boolean isPackagePrivateAccessSupported() {
+    return false;
   }
 
   private static final class GeneratedClassLoader extends ClassLoader {

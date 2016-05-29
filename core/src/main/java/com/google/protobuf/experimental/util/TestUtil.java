@@ -1,7 +1,7 @@
 package com.google.protobuf.experimental.util;
 
 import com.google.protobuf.experimental.JavaType;
-import com.google.protobuf.experimental.PojoMessage;
+import com.google.protobuf.experimental.example.PojoMessage;
 import com.google.protobuf.experimental.descriptor.AnnotationBeanDescriptorFactory;
 import com.google.protobuf.experimental.descriptor.BeanDescriptor;
 import com.google.protobuf.experimental.descriptor.BeanDescriptorFactory;
@@ -12,6 +12,9 @@ import com.google.protobuf.experimental.Reader;
 import com.google.protobuf.experimental.WireFormat;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -298,10 +301,18 @@ public final class TestUtil {
             AnnotationBeanDescriptorFactory.getInstance().descriptorFor(msg.getClass())
                     .getPropertyDescriptors();
     for (PropertyDescriptor info : protoProperties) {
-      Object value;
+      final Object value;
       try {
-        value = info.field.get(msg);
+        if (isAccessible(info.field)) {
+          value = info.field.get(msg);
+        } else {
+          // Call the getter.
+          Method accessor = accessorFor(info.field);
+          value = accessor.invoke(msg);
+        }
       } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      } catch (InvocationTargetException e) {
         throw new RuntimeException(e);
       }
       if (value instanceof List) {
@@ -314,6 +325,26 @@ public final class TestUtil {
       }
     }
     return fieldValues.toArray(new FieldValue[fieldValues.size()]);
+  }
+
+  private static boolean isAccessible(Field field) {
+    int mod = field.getModifiers();
+    return Modifier.isPublic(mod);
+  }
+
+  private static Method accessorFor(Field field) {
+    String name = field.getName();
+    name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    if (field.getType() == boolean.class) {
+      name = "is" + name;
+    } else {
+      name = "get" + name;
+    }
+    try {
+      return field.getDeclaringClass().getMethod(name);
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static void addFieldValue(PropertyDescriptor info, Object value, List<FieldValue> fieldValues) {

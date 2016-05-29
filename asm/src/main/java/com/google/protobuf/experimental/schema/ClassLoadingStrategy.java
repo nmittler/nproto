@@ -5,5 +5,6 @@ import com.google.protobuf.experimental.Internal;
 
 @Internal
 public interface ClassLoadingStrategy {
-  Class<?> loadClass(String name, byte[] binaryRepresentation) throws ClassNotFoundException;
+  Class<?> loadSchemaClass(Class<?> messageClass, String name, byte[] binaryRepresentation);
+  boolean isPackagePrivateAccessSupported();
 }

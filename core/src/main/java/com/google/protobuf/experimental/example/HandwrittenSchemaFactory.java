@@ -1,7 +1,7 @@
-package com.google.protobuf.experimental.schema;
+package com.google.protobuf.experimental.example;
 
-
-import com.google.protobuf.experimental.PojoMessage;
+import com.google.protobuf.experimental.schema.Schema;
+import com.google.protobuf.experimental.schema.SchemaFactory;
 
 public final class HandwrittenSchemaFactory implements SchemaFactory {
   @Override

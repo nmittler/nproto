@@ -54,19 +54,26 @@ public class AndroidClassLoadingStrategy implements ClassLoadingStrategy {
   }
 
   @Override
-  public Class<?> loadClass(String name, byte[] binaryRepresentation) throws ClassNotFoundException {
+  public Class<?> loadSchemaClass(Class<?> messageClass, String name, byte[] binaryRepresentation) {
     DexFile dexFile = newDexFile(name, binaryRepresentation);
     File jarFile = newJarFile();
     try {
       writeDexToJar(dexFile, jarFile);
       return loadClassFromJar(name, jarFile);
-    } catch (IOException exception) {
-      throw new IllegalStateException("Cannot write to zip file " + jarFile, exception);
+    } catch (IOException e) {
+      throw new IllegalStateException("Cannot write to zip file " + jarFile, e);
+    } catch(ClassNotFoundException e) {
+      throw new IllegalStateException("Unable to find loaded class " + name, e);
     } finally {
       if (!jarFile.delete()) {
         Logger.getAnonymousLogger().warning("Could not delete " + jarFile);
       }
     }
+  }
+
+  @Override
+  public boolean isPackagePrivateAccessSupported() {
+    return false;
   }
 
   private File newJarFile() {

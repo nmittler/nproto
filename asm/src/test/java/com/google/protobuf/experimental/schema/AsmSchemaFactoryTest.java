@@ -1,6 +1,6 @@
 package com.google.protobuf.experimental.schema;
 
-import com.google.protobuf.experimental.PojoMessage;
+import com.google.protobuf.experimental.example.PojoMessage;
 
 import org.junit.Ignore;
 import org.junit.Test;
