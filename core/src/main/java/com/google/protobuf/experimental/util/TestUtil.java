@@ -1,19 +1,17 @@
 package com.google.protobuf.experimental.util;
 
+import com.google.protobuf.experimental.ByteString;
+import com.google.protobuf.experimental.Internal;
 import com.google.protobuf.experimental.JavaType;
-import com.google.protobuf.experimental.example.PojoMessage;
+import com.google.protobuf.experimental.Reader;
+import com.google.protobuf.experimental.WireFormat;
 import com.google.protobuf.experimental.descriptor.AnnotationBeanDescriptorFactory;
 import com.google.protobuf.experimental.descriptor.BeanDescriptor;
 import com.google.protobuf.experimental.descriptor.BeanDescriptorFactory;
 import com.google.protobuf.experimental.descriptor.PropertyDescriptor;
-import com.google.protobuf.experimental.ByteString;
-import com.google.protobuf.experimental.Internal;
-import com.google.protobuf.experimental.Reader;
-import com.google.protobuf.experimental.WireFormat;
+import com.google.protobuf.experimental.example.PojoMessage;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,7 +60,6 @@ public final class TestUtil {
 
   public static final class PojoDescriptorFactory implements BeanDescriptorFactory {
     private static final PojoDescriptorFactory INSTANCE = new PojoDescriptorFactory();
-    //private static final BeanDescriptor DESCRIPTOR = newDescriptor();
 
     private PojoDescriptorFactory() {
     }
@@ -71,108 +68,104 @@ public final class TestUtil {
       return INSTANCE;
     }
 
-    private static Field pojoField(String name) {
+    private static BeanDescriptor newDescriptor() {
       try {
-        return PojoMessage.class.getDeclaredField(name);
+        final Field ENUM_FIELD = PojoMessage.class.getDeclaredField("enumField");
+        final Field BOOL_FIELD = PojoMessage.class.getDeclaredField("boolField");
+        final Field UINT32_FIELD = PojoMessage.class.getDeclaredField("uint32Field");
+        final Field INT32_FIELD = PojoMessage.class.getDeclaredField("int32Field");
+        final Field SINT32_FIELD = PojoMessage.class.getDeclaredField("sInt32Field");
+        final Field FIXED32_FIELD = PojoMessage.class.getDeclaredField("fixedInt32Field");
+        final Field SFIXED32_FIELD = PojoMessage.class.getDeclaredField("sFixedInt32Field");
+        final Field UINT64_FIELD = PojoMessage.class.getDeclaredField("uint64Field");
+        final Field INT64_FIELD = PojoMessage.class.getDeclaredField("int64Field");
+        final Field SINT64_FIELD = PojoMessage.class.getDeclaredField("sInt64Field");
+        final Field FIXED64_FIELD = PojoMessage.class.getDeclaredField("fixedInt64Field");
+        final Field SFIXED64_FIELD = PojoMessage.class.getDeclaredField("sFixedInt64Field");
+        final Field STRING_FIELD = PojoMessage.class.getDeclaredField("stringField");
+        final Field BYTES_FIELD = PojoMessage.class.getDeclaredField("bytesField");
+        final Field MESSAGE_FIELD = PojoMessage.class.getDeclaredField("messageField");
+        final Field ENUM_LIST_FIELD = PojoMessage.class.getDeclaredField("enumListField");
+        final Field BOOL_LIST_FIELD = PojoMessage.class.getDeclaredField("boolListField");
+        final Field UINT32_LIST_FIELD = PojoMessage.class.getDeclaredField("uint32ListField");
+        final Field INT32_LIST_FIELD = PojoMessage.class.getDeclaredField("int32ListField");
+        final Field SINT32_LIST_FIELD = PojoMessage.class.getDeclaredField("sInt32ListField");
+        final Field FIXED32_LIST_FIELD = PojoMessage.class.getDeclaredField("fixedInt32ListField");
+        final Field SFIXED32_LIST_FIELD = PojoMessage.class.getDeclaredField("sFixedInt32ListField");
+        final Field UINT64_LIST_FIELD = PojoMessage.class.getDeclaredField("uint64ListField");
+        final Field INT64_LIST_FIELD = PojoMessage.class.getDeclaredField("int64ListField");
+        final Field SINT64_LIST_FIELD = PojoMessage.class.getDeclaredField("sInt64ListField");
+        final Field FIXED64_LIST_FIELD = PojoMessage.class.getDeclaredField("fixedInt64ListField");
+        final Field SFIXED64_LIST_FIELD = PojoMessage.class.getDeclaredField("sFixedInt64ListField");
+        final Field STRING_LIST_FIELD = PojoMessage.class.getDeclaredField("stringListField");
+        final Field BYTES_LIST_FIELD = PojoMessage.class.getDeclaredField("bytesListField");
+        final Field MESSAGE_LIST_FIELD = PojoMessage.class.getDeclaredField("messageListField");
+
+        List<PropertyDescriptor> properties = new ArrayList<PropertyDescriptor>(30);
+        properties.add(new PropertyDescriptor(
+                ENUM_FIELD, 1, WireFormat.FieldType.ENUM));
+        properties.add(new PropertyDescriptor(
+                BOOL_FIELD, 2, WireFormat.FieldType.BOOL));
+        properties.add(new PropertyDescriptor(
+                UINT32_FIELD, 3, WireFormat.FieldType.UINT32));
+        properties.add(new PropertyDescriptor(
+                INT32_FIELD, 4, WireFormat.FieldType.INT32));
+        properties.add(new PropertyDescriptor(
+                SINT32_FIELD, 5, WireFormat.FieldType.SINT32));
+        properties.add(new PropertyDescriptor(
+                FIXED32_FIELD, 6, WireFormat.FieldType.FIXED32));
+        properties.add(new PropertyDescriptor(
+                SFIXED32_FIELD, 7, WireFormat.FieldType.SFIXED32));
+        properties.add(new PropertyDescriptor(
+                UINT64_FIELD, 8, WireFormat.FieldType.UINT64));
+        properties.add(new PropertyDescriptor(
+                INT64_FIELD, 9, WireFormat.FieldType.INT64));
+        properties.add(new PropertyDescriptor(
+                SINT64_FIELD, 10, WireFormat.FieldType.SINT64));
+        properties.add(new PropertyDescriptor(
+                FIXED64_FIELD, 11, WireFormat.FieldType.FIXED64));
+        properties.add(new PropertyDescriptor(
+                SFIXED64_FIELD, 12, WireFormat.FieldType.SFIXED64));
+        properties.add(new PropertyDescriptor(
+                STRING_FIELD, 13, WireFormat.FieldType.STRING));
+        properties.add(new PropertyDescriptor(
+                BYTES_FIELD, 14, WireFormat.FieldType.BYTES));
+        properties.add(new PropertyDescriptor(
+                MESSAGE_FIELD, 15, WireFormat.FieldType.MESSAGE));
+        properties.add(new PropertyDescriptor(
+                ENUM_LIST_FIELD, 16, WireFormat.FieldType.ENUM));
+        properties.add(new PropertyDescriptor(
+                BOOL_LIST_FIELD, 17, WireFormat.FieldType.BOOL));
+        properties.add(new PropertyDescriptor(
+                UINT32_LIST_FIELD, 18, WireFormat.FieldType.UINT32));
+        properties.add(new PropertyDescriptor(
+                INT32_LIST_FIELD, 19, WireFormat.FieldType.INT32));
+        properties.add(new PropertyDescriptor(
+                SINT32_LIST_FIELD, 20, WireFormat.FieldType.SINT32));
+        properties.add(new PropertyDescriptor(
+                FIXED32_LIST_FIELD, 21, WireFormat.FieldType.FIXED32));
+        properties.add(new PropertyDescriptor(
+                SFIXED32_LIST_FIELD, 22, WireFormat.FieldType.SFIXED32));
+        properties.add(new PropertyDescriptor(
+                UINT64_LIST_FIELD, 23, WireFormat.FieldType.UINT64));
+        properties.add(new PropertyDescriptor(
+                INT64_LIST_FIELD, 24, WireFormat.FieldType.INT64));
+        properties.add(new PropertyDescriptor(
+                SINT64_LIST_FIELD, 25, WireFormat.FieldType.SINT64));
+        properties.add(new PropertyDescriptor(
+                FIXED64_LIST_FIELD, 26, WireFormat.FieldType.FIXED64));
+        properties.add(new PropertyDescriptor(
+                SFIXED64_LIST_FIELD, 27, WireFormat.FieldType.SFIXED64));
+        properties.add(new PropertyDescriptor(
+                STRING_LIST_FIELD, 28, WireFormat.FieldType.STRING));
+        properties.add(new PropertyDescriptor(
+                BYTES_LIST_FIELD, 29, WireFormat.FieldType.BYTES));
+        properties.add(new PropertyDescriptor(
+                MESSAGE_LIST_FIELD, 30, WireFormat.FieldType.MESSAGE));
+        return new BeanDescriptor(properties);
       } catch (NoSuchFieldException e) {
         throw new RuntimeException(e);
       }
-    }
-
-    private static BeanDescriptor newDescriptor() {
-      final Field ENUM_FIELD = pojoField("enumField");
-      final Field BOOL_FIELD = pojoField("boolField");
-      final Field UINT32_FIELD = pojoField("uint32Field");
-      final Field INT32_FIELD = pojoField("int32Field");
-      final Field SINT32_FIELD = pojoField("sInt32Field");
-      final Field FIXED32_FIELD = pojoField("fixedInt32Field");
-      final Field SFIXED32_FIELD = pojoField("sFixedInt32Field");
-      final Field UINT64_FIELD = pojoField("uint64Field");
-      final Field INT64_FIELD = pojoField("int64Field");
-      final Field SINT64_FIELD = pojoField("sInt64Field");
-      final Field FIXED64_FIELD = pojoField("fixedInt64Field");
-      final Field SFIXED64_FIELD = pojoField("sFixedInt64Field");
-      final Field STRING_FIELD = pojoField("stringField");
-      final Field BYTES_FIELD = pojoField("bytesField");
-      final Field MESSAGE_FIELD = pojoField("messageField");
-      final Field ENUM_LIST_FIELD = pojoField("enumListField");
-      final Field BOOL_LIST_FIELD = pojoField("boolListField");
-      final Field UINT32_LIST_FIELD = pojoField("uint32ListField");
-      final Field INT32_LIST_FIELD = pojoField("int32ListField");
-      final Field SINT32_LIST_FIELD = pojoField("sInt32ListField");
-      final Field FIXED32_LIST_FIELD = pojoField("fixedInt32ListField");
-      final Field SFIXED32_LIST_FIELD = pojoField("sFixedInt32ListField");
-      final Field UINT64_LIST_FIELD = pojoField("uint64ListField");
-      final Field INT64_LIST_FIELD = pojoField("int64ListField");
-      final Field SINT64_LIST_FIELD = pojoField("sInt64ListField");
-      final Field FIXED64_LIST_FIELD = pojoField("fixedInt64ListField");
-      final Field SFIXED64_LIST_FIELD = pojoField("sFixedInt64ListField");
-      final Field STRING_LIST_FIELD = pojoField("stringListField");
-      final Field BYTES_LIST_FIELD = pojoField("bytesListField");
-      final Field MESSAGE_LIST_FIELD = pojoField("messageListField");
-
-      List<PropertyDescriptor> properties = new ArrayList<PropertyDescriptor>(30);
-      properties.add(new PropertyDescriptor(
-              ENUM_FIELD, 1, WireFormat.FieldType.ENUM));
-      properties.add(new PropertyDescriptor(
-              BOOL_FIELD, 2, WireFormat.FieldType.BOOL));
-      properties.add(new PropertyDescriptor(
-              UINT32_FIELD, 3, WireFormat.FieldType.UINT32));
-      properties.add(new PropertyDescriptor(
-              INT32_FIELD, 4, WireFormat.FieldType.INT32));
-      properties.add(new PropertyDescriptor(
-              SINT32_FIELD, 5, WireFormat.FieldType.SINT32));
-      properties.add(new PropertyDescriptor(
-              FIXED32_FIELD, 6, WireFormat.FieldType.FIXED32));
-      properties.add(new PropertyDescriptor(
-              SFIXED32_FIELD, 7, WireFormat.FieldType.SFIXED32));
-      properties.add(new PropertyDescriptor(
-              UINT64_FIELD, 8, WireFormat.FieldType.UINT64));
-      properties.add(new PropertyDescriptor(
-              INT64_FIELD, 9, WireFormat.FieldType.INT64));
-      properties.add(new PropertyDescriptor(
-              SINT64_FIELD, 10, WireFormat.FieldType.SINT64));
-      properties.add(new PropertyDescriptor(
-              FIXED64_FIELD, 11, WireFormat.FieldType.FIXED64));
-      properties.add(new PropertyDescriptor(
-              SFIXED64_FIELD, 12, WireFormat.FieldType.SFIXED64));
-      properties.add(new PropertyDescriptor(
-              STRING_FIELD, 13, WireFormat.FieldType.STRING));
-      properties.add(new PropertyDescriptor(
-              BYTES_FIELD, 14, WireFormat.FieldType.BYTES));
-      properties.add(new PropertyDescriptor(
-              MESSAGE_FIELD, 15, WireFormat.FieldType.MESSAGE));
-      properties.add(new PropertyDescriptor(
-              ENUM_LIST_FIELD, 16, WireFormat.FieldType.ENUM));
-      properties.add(new PropertyDescriptor(
-              BOOL_LIST_FIELD, 17, WireFormat.FieldType.BOOL));
-      properties.add(new PropertyDescriptor(
-              UINT32_LIST_FIELD, 18, WireFormat.FieldType.UINT32));
-      properties.add(new PropertyDescriptor(
-              INT32_LIST_FIELD, 19, WireFormat.FieldType.INT32));
-      properties.add(new PropertyDescriptor(
-              SINT32_LIST_FIELD, 20, WireFormat.FieldType.SINT32));
-      properties.add(new PropertyDescriptor(
-              FIXED32_LIST_FIELD, 21, WireFormat.FieldType.FIXED32));
-      properties.add(new PropertyDescriptor(
-              SFIXED32_LIST_FIELD, 22, WireFormat.FieldType.SFIXED32));
-      properties.add(new PropertyDescriptor(
-              UINT64_LIST_FIELD, 23, WireFormat.FieldType.UINT64));
-      properties.add(new PropertyDescriptor(
-              INT64_LIST_FIELD, 24, WireFormat.FieldType.INT64));
-      properties.add(new PropertyDescriptor(
-              SINT64_LIST_FIELD, 25, WireFormat.FieldType.SINT64));
-      properties.add(new PropertyDescriptor(
-              FIXED64_LIST_FIELD, 26, WireFormat.FieldType.FIXED64));
-      properties.add(new PropertyDescriptor(
-              SFIXED64_LIST_FIELD, 27, WireFormat.FieldType.SFIXED64));
-      properties.add(new PropertyDescriptor(
-              STRING_LIST_FIELD, 28, WireFormat.FieldType.STRING));
-      properties.add(new PropertyDescriptor(
-              BYTES_LIST_FIELD, 29, WireFormat.FieldType.BYTES));
-      properties.add(new PropertyDescriptor(
-              MESSAGE_LIST_FIELD, 30, WireFormat.FieldType.MESSAGE));
-      return new BeanDescriptor(properties);
     }
 
     @Override
@@ -295,7 +288,7 @@ public final class TestUtil {
     }
   }
 
-  private static FieldValue[] fieldValuesFor(Object msg) {
+  private static FieldValue[] fieldValuesFor(PojoMessage msg) {
     List<FieldValue> fieldValues = new ArrayList<FieldValue>();
     List<PropertyDescriptor> protoProperties =
             AnnotationBeanDescriptorFactory.getInstance().descriptorFor(msg.getClass())
@@ -306,13 +299,18 @@ public final class TestUtil {
         if (isAccessible(info.field)) {
           value = info.field.get(msg);
         } else {
-          // Call the getter.
-          Method accessor = accessorFor(info.field);
-          value = accessor.invoke(msg);
+          // Call the appropriate getter.
+          if (info.field.equals(PojoMessage.class.getDeclaredField("boolField"))) {
+            value = msg.isBoolField();
+          } else if (info.field.equals(PojoMessage.class.getDeclaredField("enumField"))) {
+            value = msg.getEnumField();
+          } else {
+            throw new RuntimeException("Unable to find accessor for field " + info.field.getName());
+          }
         }
       } catch (IllegalAccessException e) {
         throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
+      } catch (NoSuchFieldException e) {
         throw new RuntimeException(e);
       }
       if (value instanceof List) {
@@ -330,21 +328,6 @@ public final class TestUtil {
   private static boolean isAccessible(Field field) {
     int mod = field.getModifiers();
     return Modifier.isPublic(mod);
-  }
-
-  private static Method accessorFor(Field field) {
-    String name = field.getName();
-    name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    if (field.getType() == boolean.class) {
-      name = "is" + name;
-    } else {
-      name = "get" + name;
-    }
-    try {
-      return field.getDeclaringClass().getMethod(name);
-    } catch (NoSuchMethodException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   private static void addFieldValue(PropertyDescriptor info, Object value, List<FieldValue> fieldValues) {

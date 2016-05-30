@@ -20,7 +20,10 @@ import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V1_6;
 import static org.objectweb.asm.Type.getInternalName;
 
+import com.google.protobuf.experimental.ByteString;
+import com.google.protobuf.experimental.Internal;
 import com.google.protobuf.experimental.JavaType;
+import com.google.protobuf.experimental.Reader;
 import com.google.protobuf.experimental.Writer;
 import com.google.protobuf.experimental.descriptor.AnnotationBeanDescriptorFactory;
 import com.google.protobuf.experimental.descriptor.BeanDescriptorFactory;
@@ -28,8 +31,6 @@ import com.google.protobuf.experimental.descriptor.PropertyDescriptor;
 import com.google.protobuf.experimental.descriptor.PropertyType;
 import com.google.protobuf.experimental.util.SchemaUtil;
 import com.google.protobuf.experimental.util.UnsafeUtil;
-import com.google.protobuf.experimental.Internal;
-import com.google.protobuf.experimental.Reader;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -37,23 +38,581 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
 
 @Internal
 public final class AsmSchemaFactory implements SchemaFactory {
-  private static final String SCHEMA_INTERNAL_NAME = getInternalName(Schema.class);
-  private static final String WRITER_INTERNAL_NAME = getInternalName(Writer.class);
-  private static final String READER_INTERNAL_NAME = getInternalName(Reader.class);
-  private static final String SCHEMAUTIL_INTERNAL_NAME = getInternalName(SchemaUtil.class);
-  private static final Type ENUM_TYPE = Type.getType(Enum.class);
-  private static final String WRITE_TO_DESCRIPTOR = String.format("(Ljava/lang/Object;L%s;)V",
-          WRITER_INTERNAL_NAME);
-  private static final String MERGE_FROM_DESCRIPTOR = String.format("(Ljava/lang/Object;L%s;)V",
-          READER_INTERNAL_NAME);
   private static final int MESSAGE_INDEX = 1;
   private static final int WRITER_INDEX = 2;
   private static final int READER_INDEX = 2;
+
+  private static final String OBJECT_NAME = getInternalName(Object.class);
+  private static final String SCHEMA_NAME = getInternalName(Schema.class);
+  private static final String READER_NAME = getInternalName(Reader.class);
+  private static final String SCHEMA_UTIL_NAME = getInternalName(SchemaUtil.class);
+  private static final Type ENUM_TYPE = Type.getType(Enum.class);
+
+  // Schema methods.
+  private static final String WRITE_TO_NAME;
+  private static final String WRITE_TO_DESCRIPTOR;
+  private static final String MERGE_FROM_NAME;
+  private static final String MERGE_FROM_DESCRIPTOR;
+
+  // Reader methods.
+  private static final String FIELD_NUMBER_NAME;
+  private static final String FIELD_NUMBER_DESCRIPTOR;
+  private static final String SKIP_FIELD_NAME;
+  private static final String SKIP_FIELD_DESCRIPTOR;
+
+  // SchemaUtil methods.
+  private static final String WRITE_DOUBLE_NAME;
+  private static final String WRITE_DOUBLE_DESCRIPTOR;
+  private static final String WRITE_FLOAT_NAME;
+  private static final String WRITE_FLOAT_DESCRIPTOR;
+  private static final String WRITE_INT64_NAME;
+  private static final String WRITE_INT64_DESCRIPTOR;
+  private static final String WRITE_UINT64_NAME;
+  private static final String WRITE_UINT64_DESCRIPTOR;
+  private static final String WRITE_SINT64_NAME;
+  private static final String WRITE_SINT64_DESCRIPTOR;
+  private static final String WRITE_FIXED64_NAME;
+  private static final String WRITE_FIXED64_DESCRIPTOR;
+  private static final String WRITE_SFIXED64_NAME;
+  private static final String WRITE_SFIXED64_DESCRIPTOR;
+  private static final String WRITE_INT32_NAME;
+  private static final String WRITE_INT32_DESCRIPTOR;
+  private static final String WRITE_UINT32_NAME;
+  private static final String WRITE_UINT32_DESCRIPTOR;
+  private static final String WRITE_SINT32_NAME;
+  private static final String WRITE_SINT32_DESCRIPTOR;
+  private static final String WRITE_FIXED32_NAME;
+  private static final String WRITE_FIXED32_DESCRIPTOR;
+  private static final String WRITE_SFIXED32_NAME;
+  private static final String WRITE_SFIXED32_DESCRIPTOR;
+  private static final String WRITE_ENUM_DESCRIPTOR;
+  private static final String WRITE_ENUM_NAME;
+  private static final String WRITE_BOOL_DESCRIPTOR;
+  private static final String WRITE_BOOL_NAME;
+  private static final String WRITE_STRING_DESCRIPTOR;
+  private static final String WRITE_STRING_NAME;
+  private static final String WRITE_BYTES_DESCRIPTOR;
+  private static final String WRITE_BYTES_NAME;
+  private static final String WRITE_MESSAGE_DESCRIPTOR;
+  private static final String WRITE_MESSAGE_NAME;
+  private static final String WRITE_DOUBLE_LIST_DESCRIPTOR;
+  private static final String WRITE_DOUBLE_LIST_NAME;
+  private static final String WRITE_FLOAT_LIST_DESCRIPTOR;
+  private static final String WRITE_FLOAT_LIST_NAME;
+  private static final String WRITE_INT64_LIST_DESCRIPTOR;
+  private static final String WRITE_INT64_LIST_NAME;
+  private static final String WRITE_UINT64_LIST_DESCRIPTOR;
+  private static final String WRITE_UINT64_LIST_NAME;
+  private static final String WRITE_SINT64_LIST_DESCRIPTOR;
+  private static final String WRITE_SINT64_LIST_NAME;
+  private static final String WRITE_FIXED64_LIST_DESCRIPTOR;
+  private static final String WRITE_FIXED64_LIST_NAME;
+  private static final String WRITE_SFIXED64_LIST_DESCRIPTOR;
+  private static final String WRITE_SFIXED64_LIST_NAME;
+  private static final String WRITE_INT32_LIST_DESCRIPTOR;
+  private static final String WRITE_INT32_LIST_NAME;
+  private static final String WRITE_UINT32_LIST_DESCRIPTOR;
+  private static final String WRITE_UINT32_LIST_NAME;
+  private static final String WRITE_SINT32_LIST_DESCRIPTOR;
+  private static final String WRITE_SINT32_LIST_NAME;
+  private static final String WRITE_FIXED32_LIST_DESCRIPTOR;
+  private static final String WRITE_FIXED32_LIST_NAME;
+  private static final String WRITE_SFIXED32_LIST_DESCRIPTOR;
+  private static final String WRITE_SFIXED32_LIST_NAME;
+  private static final String WRITE_ENUM_LIST_DESCRIPTOR;
+  private static final String WRITE_ENUM_LIST_NAME;
+  private static final String WRITE_BOOL_LIST_DESCRIPTOR;
+  private static final String WRITE_BOOL_LIST_NAME;
+  private static final String WRITE_STRING_LIST_DESCRIPTOR;
+  private static final String WRITE_STRING_LIST_NAME;
+  private static final String WRITE_BYTES_LIST_DESCRIPTOR;
+  private static final String WRITE_BYTES_LIST_NAME;
+  private static final String WRITE_MESSAGE_LIST_DESCRIPTOR;
+  private static final String WRITE_MESSAGE_LIST_NAME;
+
+  private static final String UNSAFE_WRITE_DOUBLE_NAME;
+  private static final String UNSAFE_WRITE_DOUBLE_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_FLOAT_NAME;
+  private static final String UNSAFE_WRITE_FLOAT_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_INT64_NAME;
+  private static final String UNSAFE_WRITE_INT64_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_UINT64_NAME;
+  private static final String UNSAFE_WRITE_UINT64_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_SINT64_NAME;
+  private static final String UNSAFE_WRITE_SINT64_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_FIXED64_NAME;
+  private static final String UNSAFE_WRITE_FIXED64_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_SFIXED64_NAME;
+  private static final String UNSAFE_WRITE_SFIXED64_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_INT32_NAME;
+  private static final String UNSAFE_WRITE_INT32_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_UINT32_NAME;
+  private static final String UNSAFE_WRITE_UINT32_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_SINT32_NAME;
+  private static final String UNSAFE_WRITE_SINT32_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_FIXED32_NAME;
+  private static final String UNSAFE_WRITE_FIXED32_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_SFIXED32_NAME;
+  private static final String UNSAFE_WRITE_SFIXED32_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_ENUM_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_ENUM_NAME;
+  private static final String UNSAFE_WRITE_BOOL_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_BOOL_NAME;
+  private static final String UNSAFE_WRITE_STRING_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_STRING_NAME;
+  private static final String UNSAFE_WRITE_BYTES_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_BYTES_NAME;
+  private static final String UNSAFE_WRITE_MESSAGE_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_MESSAGE_NAME;
+
+  private static final String UNSAFE_WRITE_DOUBLE_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_DOUBLE_LIST_NAME;
+  private static final String UNSAFE_WRITE_FLOAT_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_FLOAT_LIST_NAME;
+  private static final String UNSAFE_WRITE_INT64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_INT64_LIST_NAME;
+  private static final String UNSAFE_WRITE_UINT64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_UINT64_LIST_NAME;
+  private static final String UNSAFE_WRITE_SINT64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_SINT64_LIST_NAME;
+  private static final String UNSAFE_WRITE_FIXED64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_FIXED64_LIST_NAME;
+  private static final String UNSAFE_WRITE_SFIXED64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_SFIXED64_LIST_NAME;
+  private static final String UNSAFE_WRITE_INT32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_INT32_LIST_NAME;
+  private static final String UNSAFE_WRITE_UINT32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_UINT32_LIST_NAME;
+  private static final String UNSAFE_WRITE_SINT32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_SINT32_LIST_NAME;
+  private static final String UNSAFE_WRITE_FIXED32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_FIXED32_LIST_NAME;
+  private static final String UNSAFE_WRITE_SFIXED32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_SFIXED32_LIST_NAME;
+  private static final String UNSAFE_WRITE_ENUM_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_ENUM_LIST_NAME;
+  private static final String UNSAFE_WRITE_BOOL_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_BOOL_LIST_NAME;
+  private static final String UNSAFE_WRITE_STRING_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_STRING_LIST_NAME;
+  private static final String UNSAFE_WRITE_BYTES_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_BYTES_LIST_NAME;
+  private static final String UNSAFE_WRITE_MESSAGE_LIST_DESCRIPTOR;
+  private static final String UNSAFE_WRITE_MESSAGE_LIST_NAME;
+
+  private static final String UNSAFE_READ_DOUBLE_NAME;
+  private static final String UNSAFE_READ_DOUBLE_DESCRIPTOR;
+  private static final String UNSAFE_READ_FLOAT_NAME;
+  private static final String UNSAFE_READ_FLOAT_DESCRIPTOR;
+  private static final String UNSAFE_READ_INT64_NAME;
+  private static final String UNSAFE_READ_INT64_DESCRIPTOR;
+  private static final String UNSAFE_READ_UINT64_NAME;
+  private static final String UNSAFE_READ_UINT64_DESCRIPTOR;
+  private static final String UNSAFE_READ_SINT64_NAME;
+  private static final String UNSAFE_READ_SINT64_DESCRIPTOR;
+  private static final String UNSAFE_READ_FIXED64_NAME;
+  private static final String UNSAFE_READ_FIXED64_DESCRIPTOR;
+  private static final String UNSAFE_READ_SFIXED64_NAME;
+  private static final String UNSAFE_READ_SFIXED64_DESCRIPTOR;
+  private static final String UNSAFE_READ_INT32_NAME;
+  private static final String UNSAFE_READ_INT32_DESCRIPTOR;
+  private static final String UNSAFE_READ_UINT32_NAME;
+  private static final String UNSAFE_READ_UINT32_DESCRIPTOR;
+  private static final String UNSAFE_READ_SINT32_NAME;
+  private static final String UNSAFE_READ_SINT32_DESCRIPTOR;
+  private static final String UNSAFE_READ_FIXED32_NAME;
+  private static final String UNSAFE_READ_FIXED32_DESCRIPTOR;
+  private static final String UNSAFE_READ_SFIXED32_NAME;
+  private static final String UNSAFE_READ_SFIXED32_DESCRIPTOR;
+  private static final String UNSAFE_READ_ENUM_DESCRIPTOR;
+  private static final String UNSAFE_READ_ENUM_NAME;
+  private static final String UNSAFE_READ_BOOL_DESCRIPTOR;
+  private static final String UNSAFE_READ_BOOL_NAME;
+  private static final String UNSAFE_READ_STRING_DESCRIPTOR;
+  private static final String UNSAFE_READ_STRING_NAME;
+  private static final String UNSAFE_READ_BYTES_DESCRIPTOR;
+  private static final String UNSAFE_READ_BYTES_NAME;
+  private static final String UNSAFE_READ_MESSAGE_DESCRIPTOR;
+  private static final String UNSAFE_READ_MESSAGE_NAME;
+
+  private static final String UNSAFE_READ_DOUBLE_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_DOUBLE_LIST_NAME;
+  private static final String UNSAFE_READ_FLOAT_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_FLOAT_LIST_NAME;
+  private static final String UNSAFE_READ_INT64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_INT64_LIST_NAME;
+  private static final String UNSAFE_READ_UINT64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_UINT64_LIST_NAME;
+  private static final String UNSAFE_READ_SINT64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_SINT64_LIST_NAME;
+  private static final String UNSAFE_READ_FIXED64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_FIXED64_LIST_NAME;
+  private static final String UNSAFE_READ_SFIXED64_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_SFIXED64_LIST_NAME;
+  private static final String UNSAFE_READ_INT32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_INT32_LIST_NAME;
+  private static final String UNSAFE_READ_UINT32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_UINT32_LIST_NAME;
+  private static final String UNSAFE_READ_SINT32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_SINT32_LIST_NAME;
+  private static final String UNSAFE_READ_FIXED32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_FIXED32_LIST_NAME;
+  private static final String UNSAFE_READ_SFIXED32_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_SFIXED32_LIST_NAME;
+  private static final String UNSAFE_READ_ENUM_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_ENUM_LIST_NAME;
+  private static final String UNSAFE_READ_BOOL_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_BOOL_LIST_NAME;
+  private static final String UNSAFE_READ_STRING_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_STRING_LIST_NAME;
+  private static final String UNSAFE_READ_BYTES_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_BYTES_LIST_NAME;
+  private static final String UNSAFE_READ_MESSAGE_LIST_DESCRIPTOR;
+  private static final String UNSAFE_READ_MESSAGE_LIST_NAME;
+
+  // Note that we don't hardcode the method names since proguard can change them. Instead
+  // we look up the method by name and then get the method's name.
+  static {
+    try {
+      // Schema methods.
+      Method method = Schema.class.getDeclaredMethod("writeTo", Object.class, Writer.class);
+      WRITE_TO_NAME = method.getName();
+      WRITE_TO_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = Schema.class.getDeclaredMethod("mergeFrom", Object.class, Reader.class);
+      MERGE_FROM_NAME = method.getName();
+      MERGE_FROM_DESCRIPTOR = Type.getMethodDescriptor(method);
+
+      // Reader methods.
+      method = Reader.class.getDeclaredMethod("fieldNumber");
+      FIELD_NUMBER_NAME = method.getName();
+      FIELD_NUMBER_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = Reader.class.getDeclaredMethod("skipField");
+      SKIP_FIELD_NAME = method.getName();
+      SKIP_FIELD_DESCRIPTOR = Type.getMethodDescriptor(method);
+
+      // SchemaUtil methods.
+      method = SchemaUtil.class.getDeclaredMethod("writeDouble", int.class, double.class, Writer.class);
+      WRITE_DOUBLE_NAME = method.getName();
+      WRITE_DOUBLE_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeFloat", int.class, float.class, Writer.class);
+      WRITE_FLOAT_NAME = method.getName();
+      WRITE_FLOAT_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeInt64", int.class, long.class, Writer.class);
+      WRITE_INT64_NAME = method.getName();
+      WRITE_INT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeUInt64", int.class, long.class, Writer.class);
+      WRITE_UINT64_NAME = method.getName();
+      WRITE_UINT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeSInt64", int.class, long.class, Writer.class);
+      WRITE_SINT64_NAME = method.getName();
+      WRITE_SINT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeFixed64", int.class, long.class, Writer.class);
+      WRITE_FIXED64_NAME = method.getName();
+      WRITE_FIXED64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeSFixed64", int.class, long.class, Writer.class);
+      WRITE_SFIXED64_NAME = method.getName();
+      WRITE_SFIXED64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeInt32", int.class, int.class, Writer.class);
+      WRITE_INT32_NAME = method.getName();
+      WRITE_INT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeUInt32", int.class, int.class, Writer.class);
+      WRITE_UINT32_NAME = method.getName();
+      WRITE_UINT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeSInt32", int.class, int.class, Writer.class);
+      WRITE_SINT32_NAME = method.getName();
+      WRITE_SINT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeFixed32", int.class, int.class, Writer.class);
+      WRITE_FIXED32_NAME = method.getName();
+      WRITE_FIXED32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeSFixed32", int.class, int.class, Writer.class);
+      WRITE_SFIXED32_NAME = method.getName();
+      WRITE_SFIXED32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeEnum", int.class, Enum.class, Writer.class);
+      WRITE_ENUM_NAME = method.getName();
+      WRITE_ENUM_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeBool", int.class, boolean.class, Writer.class);
+      WRITE_BOOL_NAME = method.getName();
+      WRITE_BOOL_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeString", int.class, String.class, Writer.class);
+      WRITE_STRING_NAME = method.getName();
+      WRITE_STRING_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeBytes", int.class, ByteString.class, Writer.class);
+      WRITE_BYTES_NAME = method.getName();
+      WRITE_BYTES_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeMessage", int.class, Object.class, Writer.class);
+      WRITE_MESSAGE_NAME = method.getName();
+      WRITE_MESSAGE_DESCRIPTOR = Type.getMethodDescriptor(method);
+
+      method = SchemaUtil.class.getDeclaredMethod("writeDoubleList", int.class, List.class, Writer.class);
+      WRITE_DOUBLE_LIST_NAME = method.getName();
+      WRITE_DOUBLE_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeFloatList", int.class, List.class, Writer.class);
+      WRITE_FLOAT_LIST_NAME = method.getName();
+      WRITE_FLOAT_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeInt64List", int.class, List.class, Writer.class);
+      WRITE_INT64_LIST_NAME = method.getName();
+      WRITE_INT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeUInt64List", int.class, List.class, Writer.class);
+      WRITE_UINT64_LIST_NAME = method.getName();
+      WRITE_UINT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeSInt64List", int.class, List.class, Writer.class);
+      WRITE_SINT64_LIST_NAME = method.getName();
+      WRITE_SINT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeFixed64List", int.class, List.class, Writer.class);
+      WRITE_FIXED64_LIST_NAME = method.getName();
+      WRITE_FIXED64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeSFixed64List", int.class, List.class, Writer.class);
+      WRITE_SFIXED64_LIST_NAME = method.getName();
+      WRITE_SFIXED64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeInt32List", int.class, List.class, Writer.class);
+      WRITE_INT32_LIST_NAME = method.getName();
+      WRITE_INT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeUInt32List", int.class, List.class, Writer.class);
+      WRITE_UINT32_LIST_NAME = method.getName();
+      WRITE_UINT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeSInt32List", int.class, List.class, Writer.class);
+      WRITE_SINT32_LIST_NAME = method.getName();
+      WRITE_SINT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeFixed32List", int.class, List.class, Writer.class);
+      WRITE_FIXED32_LIST_NAME = method.getName();
+      WRITE_FIXED32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeSFixed32List", int.class, List.class, Writer.class);
+      WRITE_SFIXED32_LIST_NAME = method.getName();
+      WRITE_SFIXED32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeEnumList", int.class, List.class, Writer.class);
+      WRITE_ENUM_LIST_NAME = method.getName();
+      WRITE_ENUM_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeBoolList", int.class, List.class, Writer.class);
+      WRITE_BOOL_LIST_NAME = method.getName();
+      WRITE_BOOL_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeStringList", int.class, List.class, Writer.class);
+      WRITE_STRING_LIST_NAME = method.getName();
+      WRITE_STRING_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeBytesList", int.class, List.class, Writer.class);
+      WRITE_BYTES_LIST_NAME = method.getName();
+      WRITE_BYTES_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("writeMessageList", int.class, List.class, Writer.class);
+      WRITE_MESSAGE_LIST_NAME = method.getName();
+      WRITE_MESSAGE_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteDouble", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_DOUBLE_NAME = method.getName();
+      UNSAFE_WRITE_DOUBLE_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteFloat", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_FLOAT_NAME = method.getName();
+      UNSAFE_WRITE_FLOAT_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteInt64", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_INT64_NAME = method.getName();
+      UNSAFE_WRITE_INT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteUInt64", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_UINT64_NAME = method.getName();
+      UNSAFE_WRITE_UINT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteSInt64", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_SINT64_NAME = method.getName();
+      UNSAFE_WRITE_SINT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteFixed64", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_FIXED64_NAME = method.getName();
+      UNSAFE_WRITE_FIXED64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteSFixed64", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_SFIXED64_NAME = method.getName();
+      UNSAFE_WRITE_SFIXED64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteInt32", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_INT32_NAME = method.getName();
+      UNSAFE_WRITE_INT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteUInt32", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_UINT32_NAME = method.getName();
+      UNSAFE_WRITE_UINT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteSInt32", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_SINT32_NAME = method.getName();
+      UNSAFE_WRITE_SINT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteFixed32", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_FIXED32_NAME = method.getName();
+      UNSAFE_WRITE_FIXED32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteSFixed32", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_SFIXED32_NAME = method.getName();
+      UNSAFE_WRITE_SFIXED32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteEnum", int.class, Object.class, long.class, Writer.class, Class.class);
+      UNSAFE_WRITE_ENUM_NAME = method.getName();
+      UNSAFE_WRITE_ENUM_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteBool", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_BOOL_NAME = method.getName();
+      UNSAFE_WRITE_BOOL_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteString", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_STRING_NAME = method.getName();
+      UNSAFE_WRITE_STRING_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteBytes", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_BYTES_NAME = method.getName();
+      UNSAFE_WRITE_BYTES_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteMessage", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_MESSAGE_NAME = method.getName();
+      UNSAFE_WRITE_MESSAGE_DESCRIPTOR = Type.getMethodDescriptor(method);
+
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteDoubleList", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_DOUBLE_LIST_NAME = method.getName();
+      UNSAFE_WRITE_DOUBLE_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteFloatList", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_FLOAT_LIST_NAME = method.getName();
+      UNSAFE_WRITE_FLOAT_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteInt64List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_INT64_LIST_NAME = method.getName();
+      UNSAFE_WRITE_INT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteUInt64List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_UINT64_LIST_NAME = method.getName();
+      UNSAFE_WRITE_UINT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteSInt64List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_SINT64_LIST_NAME = method.getName();
+      UNSAFE_WRITE_SINT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteFixed64List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_FIXED64_LIST_NAME = method.getName();
+      UNSAFE_WRITE_FIXED64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteSFixed64List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_SFIXED64_LIST_NAME = method.getName();
+      UNSAFE_WRITE_SFIXED64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteInt32List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_INT32_LIST_NAME = method.getName();
+      UNSAFE_WRITE_INT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteUInt32List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_UINT32_LIST_NAME = method.getName();
+      UNSAFE_WRITE_UINT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteSInt32List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_SINT32_LIST_NAME = method.getName();
+      UNSAFE_WRITE_SINT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteFixed32List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_FIXED32_LIST_NAME = method.getName();
+      UNSAFE_WRITE_FIXED32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteSFixed32List", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_SFIXED32_LIST_NAME = method.getName();
+      UNSAFE_WRITE_SFIXED32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteEnumList", int.class, Object.class, long.class, Writer.class, Class.class);
+      UNSAFE_WRITE_ENUM_LIST_NAME = method.getName();
+      UNSAFE_WRITE_ENUM_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteBoolList", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_BOOL_LIST_NAME = method.getName();
+      UNSAFE_WRITE_BOOL_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteStringList", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_STRING_LIST_NAME = method.getName();
+      UNSAFE_WRITE_STRING_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteBytesList", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_BYTES_LIST_NAME = method.getName();
+      UNSAFE_WRITE_BYTES_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeWriteMessageList", int.class, Object.class, long.class, Writer.class);
+      UNSAFE_WRITE_MESSAGE_LIST_NAME = method.getName();
+      UNSAFE_WRITE_MESSAGE_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadDouble", Object.class, long.class, Reader.class);
+      UNSAFE_READ_DOUBLE_NAME = method.getName();
+      UNSAFE_READ_DOUBLE_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadFloat", Object.class, long.class, Reader.class);
+      UNSAFE_READ_FLOAT_NAME = method.getName();
+      UNSAFE_READ_FLOAT_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadInt64", Object.class, long.class, Reader.class);
+      UNSAFE_READ_INT64_NAME = method.getName();
+      UNSAFE_READ_INT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadUInt64", Object.class, long.class, Reader.class);
+      UNSAFE_READ_UINT64_NAME = method.getName();
+      UNSAFE_READ_UINT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadSInt64", Object.class, long.class, Reader.class);
+      UNSAFE_READ_SINT64_NAME = method.getName();
+      UNSAFE_READ_SINT64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadFixed64", Object.class, long.class, Reader.class);
+      UNSAFE_READ_FIXED64_NAME = method.getName();
+      UNSAFE_READ_FIXED64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadSFixed64", Object.class, long.class, Reader.class);
+      UNSAFE_READ_SFIXED64_NAME = method.getName();
+      UNSAFE_READ_SFIXED64_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadInt32", Object.class, long.class, Reader.class);
+      UNSAFE_READ_INT32_NAME = method.getName();
+      UNSAFE_READ_INT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadUInt32", Object.class, long.class, Reader.class);
+      UNSAFE_READ_UINT32_NAME = method.getName();
+      UNSAFE_READ_UINT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadSInt32", Object.class, long.class, Reader.class);
+      UNSAFE_READ_SINT32_NAME = method.getName();
+      UNSAFE_READ_SINT32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadFixed32", Object.class, long.class, Reader.class);
+      UNSAFE_READ_FIXED32_NAME = method.getName();
+      UNSAFE_READ_FIXED32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadSFixed32", Object.class, long.class, Reader.class);
+      UNSAFE_READ_SFIXED32_NAME = method.getName();
+      UNSAFE_READ_SFIXED32_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadEnum", Object.class, long.class, Reader.class);
+      UNSAFE_READ_ENUM_NAME = method.getName();
+      UNSAFE_READ_ENUM_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadBool", Object.class, long.class, Reader.class);
+      UNSAFE_READ_BOOL_NAME = method.getName();
+      UNSAFE_READ_BOOL_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadString", Object.class, long.class, Reader.class);
+      UNSAFE_READ_STRING_NAME = method.getName();
+      UNSAFE_READ_STRING_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadBytes", Object.class, long.class, Reader.class);
+      UNSAFE_READ_BYTES_NAME = method.getName();
+      UNSAFE_READ_BYTES_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadMessage", Object.class, long.class, Reader.class);
+      UNSAFE_READ_MESSAGE_NAME = method.getName();
+      UNSAFE_READ_MESSAGE_DESCRIPTOR = Type.getMethodDescriptor(method);
+
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadDoubleList", Object.class, long.class, Reader.class);
+      UNSAFE_READ_DOUBLE_LIST_NAME = method.getName();
+      UNSAFE_READ_DOUBLE_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadFloatList", Object.class, long.class, Reader.class);
+      UNSAFE_READ_FLOAT_LIST_NAME = method.getName();
+      UNSAFE_READ_FLOAT_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadInt64List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_INT64_LIST_NAME = method.getName();
+      UNSAFE_READ_INT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadUInt64List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_UINT64_LIST_NAME = method.getName();
+      UNSAFE_READ_UINT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadSInt64List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_SINT64_LIST_NAME = method.getName();
+      UNSAFE_READ_SINT64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadFixed64List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_FIXED64_LIST_NAME = method.getName();
+      UNSAFE_READ_FIXED64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadSFixed64List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_SFIXED64_LIST_NAME = method.getName();
+      UNSAFE_READ_SFIXED64_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadInt32List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_INT32_LIST_NAME = method.getName();
+      UNSAFE_READ_INT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadUInt32List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_UINT32_LIST_NAME = method.getName();
+      UNSAFE_READ_UINT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadSInt32List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_SINT32_LIST_NAME = method.getName();
+      UNSAFE_READ_SINT32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadFixed32List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_FIXED32_LIST_NAME = method.getName();
+      UNSAFE_READ_FIXED32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadSFixed32List", Object.class, long.class, Reader.class);
+      UNSAFE_READ_SFIXED32_LIST_NAME = method.getName();
+      UNSAFE_READ_SFIXED32_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadEnumList", Object.class, long.class, Reader.class);
+      UNSAFE_READ_ENUM_LIST_NAME = method.getName();
+      UNSAFE_READ_ENUM_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadBoolList", Object.class, long.class, Reader.class);
+      UNSAFE_READ_BOOL_LIST_NAME = method.getName();
+      UNSAFE_READ_BOOL_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadStringList", Object.class, long.class, Reader.class);
+      UNSAFE_READ_STRING_LIST_NAME = method.getName();
+      UNSAFE_READ_STRING_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadBytesList", Object.class, long.class, Reader.class);
+      UNSAFE_READ_BYTES_LIST_NAME = method.getName();
+      UNSAFE_READ_BYTES_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+      method = SchemaUtil.class.getDeclaredMethod("unsafeReadMessageList", Object.class, long.class, Reader.class);
+      UNSAFE_READ_MESSAGE_LIST_NAME = method.getName();
+      UNSAFE_READ_MESSAGE_LIST_DESCRIPTOR = Type.getMethodDescriptor(method);
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private static final int FIELD_NUMBER_INDEX = 3;
   private static final FieldProcessor[] FIELD_PROCESSORS;
 
@@ -114,8 +673,8 @@ public final class AsmSchemaFactory implements SchemaFactory {
     //ClassVisitor cv = new CheckClassAdapter(writer);
     final String messageClassName = getInternalName(messageType);
     final String schemaClassName = getSchemaClassName(messageType).replace('.', '/');
-    cv.visit(V1_6, ACC_PUBLIC + ACC_FINAL, schemaClassName, null, "java/lang/Object",
-            new String[]{SCHEMA_INTERNAL_NAME});
+    cv.visit(V1_6, ACC_PUBLIC + ACC_FINAL, schemaClassName, null, OBJECT_NAME,
+            new String[]{SCHEMA_NAME});
     generateConstructor(cv);
 
     final boolean packagePrivateAccessSupported = classLoadingStrategy.isPackagePrivateAccessSupported();
@@ -147,7 +706,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
     MethodVisitor mv = cv.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
     mv.visitCode();
     mv.visitVarInsn(ALOAD, 0);
-    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+    mv.visitMethodInsn(INVOKESPECIAL, OBJECT_NAME, "<init>", "()V", false);
     mv.visitInsn(RETURN);
     mv.visitMaxs(1, 1);
     mv.visitEnd();
@@ -158,7 +717,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
     private final String messageClassName;
 
     WriteToGenerator(ClassVisitor cv, String messageClassName) {
-      mv = cv.visitMethod(ACC_PUBLIC, "writeTo", WRITE_TO_DESCRIPTOR, null, null);
+      mv = cv.visitMethod(ACC_PUBLIC, WRITE_TO_NAME, WRITE_TO_DESCRIPTOR, null, null);
       mv.visitCode();
 
       // Cast the message to the concrete type.
@@ -189,7 +748,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
     private final int lo;
 
     MergeFromGenerator(ClassVisitor cv, List<PropertyDescriptor> fields) {
-      mv = cv.visitMethod(ACC_PUBLIC, "mergeFrom", MERGE_FROM_DESCRIPTOR, null, null);
+      mv = cv.visitMethod(ACC_PUBLIC, MERGE_FROM_NAME, MERGE_FROM_DESCRIPTOR, null, null);
       mv.visitCode();
 
       // Create the main labels and visit the start.
@@ -199,7 +758,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       visitLabel(startLabel);
 
       // Get the field number form the reader.
-      callReader(mv, "fieldNumber", "()I");
+      callReader(mv, FIELD_NUMBER_NAME, FIELD_NUMBER_DESCRIPTOR);
 
       // Make a copy of the field number and store to a local variable. The first check is against
       // MAXINT since looking for that value in the switch statement would mean that we couldn't use a
@@ -276,7 +835,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
     void end() {
       // Default case: skip the unknown field and check for done.
       visitLabel(defaultLabel);
-      callReader(mv, "skipField", "()Z");
+      callReader(mv, SKIP_FIELD_NAME, SKIP_FIELD_DESCRIPTOR);
       mv.visitJumpInsn(IFNE, startLabel);
 
       visitLabel(endLabel);
@@ -293,7 +852,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
 
   private static void callReader(MethodVisitor mv, String methodName, String methodDescriptor) {
     mv.visitVarInsn(ALOAD, READER_INDEX);
-    mv.visitMethodInsn(INVOKEINTERFACE, READER_INTERNAL_NAME, methodName, methodDescriptor, true);
+    mv.visitMethodInsn(INVOKEINTERFACE, READER_NAME, methodName, methodDescriptor, true);
   }
 
   private static String getSchemaClassName(Class<?> messageType) {
@@ -301,10 +860,12 @@ public final class AsmSchemaFactory implements SchemaFactory {
   }
 
   private static final class FieldProcessor {
-    private final String unsafeWriteMethodName;
-    private final String safeWriteMethodName;
-    private final String safeWriteMethodDescriptor;
-    private final String unsafeReadMethodName;
+    private final String unsafeWriteName;
+    private final String unsafeWriteDescriptor;
+    private final String safeWriteName;
+    private final String safeWriteDescriptor;
+    private final String unsafeReadName;
+    private final String unsafeReadDescriptor;
     private final WriteType writeType;
 
     private enum WriteType {
@@ -320,212 +881,280 @@ public final class AsmSchemaFactory implements SchemaFactory {
               WriteType.LIST : (jtype == JavaType.ENUM) ? WriteType.ENUM : WriteType.STANDARD;
       switch (propertyType) {
         case DOUBLE:
-          unsafeWriteMethodName = "unsafeWriteDouble";
-          safeWriteMethodName = "writeDouble";
-          safeWriteMethodDescriptor = "(IDL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadDouble";
+          unsafeWriteName = UNSAFE_WRITE_DOUBLE_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_DOUBLE_DESCRIPTOR;
+          safeWriteName = WRITE_DOUBLE_NAME;
+          safeWriteDescriptor = WRITE_DOUBLE_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_DOUBLE_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_DOUBLE_DESCRIPTOR;
           break;
         case FLOAT:
-          unsafeWriteMethodName = "unsafeWriteFloat";
-          safeWriteMethodName = "writeFloat";
-          safeWriteMethodDescriptor = "(IFL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadFloat";
+          unsafeWriteName = UNSAFE_WRITE_FLOAT_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_FLOAT_DESCRIPTOR;
+          safeWriteName = WRITE_FLOAT_NAME;
+          safeWriteDescriptor = WRITE_FLOAT_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_FLOAT_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_FLOAT_DESCRIPTOR;
           break;
         case INT64:
-          unsafeWriteMethodName = "unsafeWriteInt64";
-          safeWriteMethodName = "writeInt64";
-          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadInt64";
+          unsafeWriteName = UNSAFE_WRITE_INT64_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_INT64_DESCRIPTOR;
+          safeWriteName = WRITE_INT64_NAME;
+          safeWriteDescriptor = WRITE_INT64_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_INT64_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_INT64_DESCRIPTOR;
           break;
         case UINT64:
-          unsafeWriteMethodName = "unsafeWriteUInt64";
-          safeWriteMethodName = "writeUInt64";
-          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadUInt64";
+          unsafeWriteName = UNSAFE_WRITE_UINT64_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_UINT64_DESCRIPTOR;
+          safeWriteName = WRITE_UINT64_NAME;
+          safeWriteDescriptor = WRITE_UINT64_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_UINT64_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_UINT64_DESCRIPTOR;
           break;
         case INT32:
-          unsafeWriteMethodName = "unsafeWriteInt32";
-          safeWriteMethodName = "writeInt32";
-          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadInt32";
+          unsafeWriteName = UNSAFE_WRITE_INT32_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_INT32_DESCRIPTOR;
+          safeWriteName = WRITE_INT32_NAME;
+          safeWriteDescriptor = WRITE_INT32_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_INT32_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_INT32_DESCRIPTOR;
           break;
         case FIXED64:
-          unsafeWriteMethodName = "unsafeWriteFixed64";
-          safeWriteMethodName = "writeFixed64";
-          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadFixed64";
+          unsafeWriteName = UNSAFE_WRITE_FIXED64_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_FIXED64_DESCRIPTOR;
+          safeWriteName = WRITE_FIXED64_NAME;
+          safeWriteDescriptor = WRITE_FIXED64_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_FIXED64_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_FIXED64_DESCRIPTOR;
           break;
         case FIXED32:
-          unsafeWriteMethodName = "unsafeWriteFixed32";
-          safeWriteMethodName = "writeFixed32";
-          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadFixed32";
+          unsafeWriteName = UNSAFE_WRITE_FIXED32_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_FIXED32_DESCRIPTOR;
+          safeWriteName = WRITE_FIXED32_NAME;
+          safeWriteDescriptor = WRITE_FIXED32_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_FIXED32_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_FIXED32_DESCRIPTOR;
           break;
         case BOOL:
-          unsafeWriteMethodName = "unsafeWriteBool";
-          safeWriteMethodName = "writeBool";
-          safeWriteMethodDescriptor = "(IZL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadBool";
+          unsafeWriteName = UNSAFE_WRITE_BOOL_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_BOOL_DESCRIPTOR;
+          safeWriteName = WRITE_BOOL_NAME;
+          safeWriteDescriptor = WRITE_BOOL_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_BOOL_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_BOOL_DESCRIPTOR;
           break;
         case STRING:
-          unsafeWriteMethodName = "unsafeWriteString";
-          safeWriteMethodName = "writeString";
-          safeWriteMethodDescriptor = "(ILjava/lang/String;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadString";
+          unsafeWriteName = UNSAFE_WRITE_STRING_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_STRING_DESCRIPTOR;
+          safeWriteName = WRITE_STRING_NAME;
+          safeWriteDescriptor = WRITE_STRING_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_STRING_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_STRING_DESCRIPTOR;
           break;
         case MESSAGE:
-          unsafeWriteMethodName = "unsafeWriteMessage";
-          safeWriteMethodName = "writeMessage";
-          safeWriteMethodDescriptor = "(ILjava/lang/Object;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadMessage";
+          unsafeWriteName = UNSAFE_WRITE_MESSAGE_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_MESSAGE_DESCRIPTOR;
+          safeWriteName = WRITE_MESSAGE_NAME;
+          safeWriteDescriptor = WRITE_MESSAGE_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_MESSAGE_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_MESSAGE_DESCRIPTOR;
           break;
         case BYTES:
-          unsafeWriteMethodName = "unsafeWriteBytes";
-          safeWriteMethodName = "writeBytes";
-          safeWriteMethodDescriptor = "(ILcom/google/protobuf/experimental/ByteString;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadBytes";
+          unsafeWriteName = UNSAFE_WRITE_BYTES_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_BYTES_DESCRIPTOR;
+          safeWriteName = WRITE_BYTES_NAME;
+          safeWriteDescriptor = WRITE_BYTES_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_BYTES_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_BYTES_DESCRIPTOR;
           break;
         case UINT32:
-          unsafeWriteMethodName = "unsafeWriteUInt32";
-          safeWriteMethodName = "writeUInt32";
-          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadUInt32";
+          unsafeWriteName = UNSAFE_WRITE_UINT32_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_UINT32_DESCRIPTOR;
+          safeWriteName = WRITE_UINT32_NAME;
+          safeWriteDescriptor = WRITE_UINT32_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_UINT32_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_UINT32_DESCRIPTOR;
           break;
         case ENUM:
-          unsafeWriteMethodName = "unsafeWriteEnum";
-          safeWriteMethodName = "writeEnum";
-          safeWriteMethodDescriptor = "(ILjava/lang/Enum;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadEnum";
+          unsafeWriteName = UNSAFE_WRITE_ENUM_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_ENUM_DESCRIPTOR;
+          safeWriteName = WRITE_ENUM_NAME;
+          safeWriteDescriptor = WRITE_ENUM_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_ENUM_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_ENUM_DESCRIPTOR;
           break;
         case SFIXED32:
-          unsafeWriteMethodName = "unsafeWriteSFixed32";
-          safeWriteMethodName = "writeSFixed32";
-          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadSFixed32";
+          unsafeWriteName = UNSAFE_WRITE_SFIXED32_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_SFIXED32_DESCRIPTOR;
+          safeWriteName = WRITE_SFIXED32_NAME;
+          safeWriteDescriptor = WRITE_SFIXED32_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_SFIXED32_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_SFIXED32_DESCRIPTOR;
           break;
         case SFIXED64:
-          unsafeWriteMethodName = "unsafeWriteSFixed64";
-          safeWriteMethodName = "writeSFixed64";
-          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadSFixed64";
+          unsafeWriteName = UNSAFE_WRITE_SFIXED64_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_SFIXED64_DESCRIPTOR;
+          safeWriteName = WRITE_SFIXED64_NAME;
+          safeWriteDescriptor = WRITE_SFIXED64_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_SFIXED64_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_SFIXED64_DESCRIPTOR;
           break;
         case SINT32:
-          unsafeWriteMethodName = "unsafeWriteSInt32";
-          safeWriteMethodName = "writeSInt32";
-          safeWriteMethodDescriptor = "(IIL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadSInt32";
+          unsafeWriteName = UNSAFE_WRITE_SINT32_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_SINT32_DESCRIPTOR;
+          safeWriteName = WRITE_SINT32_NAME;
+          safeWriteDescriptor = WRITE_SINT32_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_SINT32_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_SINT32_DESCRIPTOR;
           break;
         case SINT64:
-          unsafeWriteMethodName = "unsafeWriteSInt64";
-          safeWriteMethodName = "writeSInt64";
-          safeWriteMethodDescriptor = "(IJL" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadSInt64";
+          unsafeWriteName = UNSAFE_WRITE_SINT64_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_SINT64_DESCRIPTOR;
+          safeWriteName = WRITE_SINT64_NAME;
+          safeWriteDescriptor = WRITE_SINT64_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_SINT64_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_SINT64_DESCRIPTOR;
           break;
         case DOUBLE_LIST:
-          unsafeWriteMethodName = "unsafeWriteDoubleList";
-          safeWriteMethodName = "writeDoubleList";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadDoubleList";
+          unsafeWriteName = UNSAFE_WRITE_DOUBLE_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_DOUBLE_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_DOUBLE_LIST_NAME;
+          safeWriteDescriptor = WRITE_DOUBLE_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_DOUBLE_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_DOUBLE_LIST_DESCRIPTOR;
           break;
         case FLOAT_LIST:
-          unsafeWriteMethodName = "unsafeWriteFloatList";
-          safeWriteMethodName = "writeFloatList";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadFloatList";
+          unsafeWriteName = UNSAFE_WRITE_FLOAT_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_FLOAT_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_FLOAT_LIST_NAME;
+          safeWriteDescriptor = WRITE_FLOAT_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_FLOAT_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_FLOAT_LIST_DESCRIPTOR;
           break;
         case INT64_LIST:
-          unsafeWriteMethodName = "unsafeWriteInt64List";
-          safeWriteMethodName = "writeInt64List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadInt64List";
+          unsafeWriteName = UNSAFE_WRITE_INT64_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_INT64_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_INT64_LIST_NAME;
+          safeWriteDescriptor = WRITE_INT64_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_INT64_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_INT64_LIST_DESCRIPTOR;
           break;
         case UINT64_LIST:
-          unsafeWriteMethodName = "unsafeWriteUInt64List";
-          safeWriteMethodName = "writeUInt64List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadUInt64List";
+          unsafeWriteName = UNSAFE_WRITE_UINT64_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_UINT64_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_UINT64_LIST_NAME;
+          safeWriteDescriptor = WRITE_UINT64_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_UINT64_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_UINT64_LIST_DESCRIPTOR;
           break;
         case INT32_LIST:
-          unsafeWriteMethodName = "unsafeWriteInt32List";
-          safeWriteMethodName = "writeInt32List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadInt32List";
+          unsafeWriteName = UNSAFE_WRITE_INT32_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_INT32_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_INT32_LIST_NAME;
+          safeWriteDescriptor = WRITE_INT32_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_INT32_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_INT32_LIST_DESCRIPTOR;
           break;
         case FIXED64_LIST:
-          unsafeWriteMethodName = "unsafeWriteFixed64List";
-          safeWriteMethodName = "writeFixed64List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadFixed64List";
+          unsafeWriteName = UNSAFE_WRITE_FIXED64_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_FIXED64_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_FIXED64_LIST_NAME;
+          safeWriteDescriptor = WRITE_FIXED64_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_FIXED64_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_FIXED64_LIST_DESCRIPTOR;
           break;
         case FIXED32_LIST:
-          unsafeWriteMethodName = "unsafeWriteFixed32List";
-          safeWriteMethodName = "writeFixed32List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadFixed32List";
+          unsafeWriteName = UNSAFE_WRITE_FIXED32_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_FIXED32_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_FIXED32_LIST_NAME;
+          safeWriteDescriptor = WRITE_FIXED32_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_FIXED32_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_FIXED32_LIST_DESCRIPTOR;
           break;
         case BOOL_LIST:
-          unsafeWriteMethodName = "unsafeWriteBoolList";
-          safeWriteMethodName = "writeBoolList";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadBoolList";
+          unsafeWriteName = UNSAFE_WRITE_BOOL_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_BOOL_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_BOOL_LIST_NAME;
+          safeWriteDescriptor = WRITE_BOOL_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_BOOL_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_BOOL_LIST_DESCRIPTOR;
           break;
         case STRING_LIST:
-          unsafeWriteMethodName = "unsafeWriteStringList";
-          safeWriteMethodName = "writeStringList";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadStringList";
+          unsafeWriteName = UNSAFE_WRITE_STRING_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_STRING_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_STRING_LIST_NAME;
+          safeWriteDescriptor = WRITE_STRING_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_STRING_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_STRING_LIST_DESCRIPTOR;
           writeType = WriteType.STANDARD;
           break;
         case MESSAGE_LIST:
-          unsafeWriteMethodName = "unsafeWriteMessageList";
-          safeWriteMethodName = "writeMessageList";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadMessageList";
+          unsafeWriteName = UNSAFE_WRITE_MESSAGE_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_MESSAGE_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_MESSAGE_LIST_NAME;
+          safeWriteDescriptor = WRITE_MESSAGE_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_MESSAGE_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_MESSAGE_LIST_DESCRIPTOR;
           writeType = WriteType.STANDARD;
           break;
         case BYTES_LIST:
-          unsafeWriteMethodName = "unsafeWriteBytesList";
-          safeWriteMethodName = "writeBytesList";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadBytesList";
+          unsafeWriteName = UNSAFE_WRITE_BYTES_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_BYTES_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_BYTES_LIST_NAME;
+          safeWriteDescriptor = WRITE_BYTES_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_BYTES_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_BYTES_LIST_DESCRIPTOR;
           writeType = WriteType.STANDARD;
           break;
         case UINT32_LIST:
-          unsafeWriteMethodName = "unsafeWriteUInt32List";
-          safeWriteMethodName = "writeUInt32List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadUInt32List";
+          unsafeWriteName = UNSAFE_WRITE_UINT32_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_UINT32_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_UINT32_LIST_NAME;
+          safeWriteDescriptor = WRITE_UINT32_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_UINT32_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_UINT32_LIST_DESCRIPTOR;
           break;
         case ENUM_LIST:
-          unsafeWriteMethodName = "unsafeWriteEnumList";
-          safeWriteMethodName = "writeEnumList";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadEnumList";
+          unsafeWriteName = UNSAFE_WRITE_ENUM_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_ENUM_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_ENUM_LIST_NAME;
+          safeWriteDescriptor = WRITE_ENUM_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_ENUM_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_ENUM_LIST_DESCRIPTOR;
           writeType = WriteType.ENUM_LIST;
           break;
         case SFIXED32_LIST:
-          unsafeWriteMethodName = "unsafeWriteSFixed32List";
-          safeWriteMethodName = "writeSFixed32List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadSFixed32List";
+          unsafeWriteName = UNSAFE_WRITE_SFIXED32_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_SFIXED32_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_SFIXED32_LIST_NAME;
+          safeWriteDescriptor = WRITE_SFIXED32_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_SFIXED32_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_SFIXED32_LIST_DESCRIPTOR;
           break;
         case SFIXED64_LIST:
-          unsafeWriteMethodName = "unsafeWriteSFixed64List";
-          safeWriteMethodName = "writeSFixed64List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadSFixed64List";
+          unsafeWriteName = UNSAFE_WRITE_SFIXED64_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_SFIXED64_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_SFIXED64_LIST_NAME;
+          safeWriteDescriptor = WRITE_SFIXED64_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_SFIXED64_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_SFIXED64_LIST_DESCRIPTOR;
           break;
         case SINT32_LIST:
-          unsafeWriteMethodName = "unsafeWriteSInt32List";
-          safeWriteMethodName = "writeSInt32List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadSInt32List";
+          unsafeWriteName = UNSAFE_WRITE_SINT32_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_SINT32_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_SINT32_LIST_NAME;
+          safeWriteDescriptor = WRITE_SINT32_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_SINT32_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_SINT32_LIST_DESCRIPTOR;
           break;
         case SINT64_LIST:
-          unsafeWriteMethodName = "unsafeWriteSInt64List";
-          safeWriteMethodName = "writeSInt64List";
-          safeWriteMethodDescriptor = "(ILjava/util/List;L" + WRITER_INTERNAL_NAME + ";)V";
-          unsafeReadMethodName = "unsafeReadSInt64List";
+          unsafeWriteName = UNSAFE_WRITE_SINT64_LIST_NAME;
+          unsafeWriteDescriptor = UNSAFE_WRITE_SINT64_LIST_DESCRIPTOR;
+          safeWriteName = WRITE_SINT64_LIST_NAME;
+          safeWriteDescriptor = WRITE_SINT64_LIST_DESCRIPTOR;
+          unsafeReadName = UNSAFE_READ_SINT64_LIST_NAME;
+          unsafeReadDescriptor = UNSAFE_READ_SINT64_LIST_DESCRIPTOR;
           break;
         default:
           throw new IllegalArgumentException("Unsupported FieldType: " + propertyType);
@@ -576,8 +1205,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, READER_INDEX);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeReadMethodName,
-              "(Ljava/lang/Object;JLcom/google/protobuf/experimental/Reader;)V", false);
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMA_UTIL_NAME, unsafeReadName, unsafeReadDescriptor, false);
     }
 
     private void unsafeWriteEnum(MethodVisitor mv, int fieldNumber, long offset) {
@@ -586,8 +1214,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
       mv.visitLdcInsn(ENUM_TYPE);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeWriteMethodName,
-              "(ILjava/lang/Object;JLcom/google/protobuf/experimental/Writer;Ljava/lang/Class;)V", false);
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMA_UTIL_NAME, unsafeWriteName, unsafeWriteDescriptor, false);
     }
 
     private void unsafeWrite(MethodVisitor mv, int fieldNumber, long offset) {
@@ -595,8 +1222,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeWriteMethodName,
-              "(ILjava/lang/Object;JLcom/google/protobuf/experimental/Writer;)V", false);
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMA_UTIL_NAME, unsafeWriteName, unsafeWriteDescriptor, false);
     }
 
     private void safeWrite(String messageClassName, MethodVisitor mv, PropertyDescriptor property) {
@@ -608,8 +1234,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
               Type.getDescriptor(property.field.getType()));
 
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, safeWriteMethodName,
-              safeWriteMethodDescriptor, false);
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMA_UTIL_NAME, safeWriteName, safeWriteDescriptor, false);
     }
 
     private void unsafeWriteList(MethodVisitor mv, int fieldNumber, long offset) {
@@ -617,8 +1242,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitVarInsn(ALOAD, MESSAGE_INDEX);
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeWriteMethodName,
-              "(ILjava/lang/Object;JLcom/google/protobuf/experimental/Writer;)V", false);
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMA_UTIL_NAME, unsafeWriteName, unsafeWriteDescriptor, false);
     }
 
     private void unsafeWriteEnumList(MethodVisitor mv, int fieldNumber, long offset) {
@@ -627,8 +1251,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
       mv.visitLdcInsn(offset);
       mv.visitVarInsn(ALOAD, WRITER_INDEX);
       mv.visitLdcInsn(ENUM_TYPE);
-      mv.visitMethodInsn(INVOKESTATIC, SCHEMAUTIL_INTERNAL_NAME, unsafeWriteMethodName,
-              "(ILjava/lang/Object;JLcom/google/protobuf/experimental/Writer;Ljava/lang/Class;)V", false);
+      mv.visitMethodInsn(INVOKESTATIC, SCHEMA_UTIL_NAME, unsafeWriteName, unsafeWriteDescriptor, false);
     }
   }
 }
