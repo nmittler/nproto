@@ -41,6 +41,7 @@ final class GenericSchema<T> implements Schema<T> {
       if (f.fieldNumber == lastFieldNumber) {
         throw new RuntimeException("Duplicate field number: " + f.fieldNumber);
       }
+      lastFieldNumber = f.fieldNumber;
       fieldMap.loadField(f, i, dataPos);
       UnsafeUtil.putLong(data, dataPos, (((long) f.type.id()) << 32) | f.fieldNumber);
       UnsafeUtil.putLong(data, dataPos + LONG_LENGTH, UnsafeUtil.objectFieldOffset(f.field));
@@ -460,7 +461,6 @@ final class GenericSchema<T> implements Schema<T> {
     TableFieldMap(List<PropertyDescriptor> fields) {
       min = fields.get(0).fieldNumber;
       max = fields.get(fields.size() - 1).fieldNumber;
-      int max = fields.get(fields.size() - 1).fieldNumber;
       int numPositions = (max - min) + 1;
       positions = new long[numPositions];
     }
