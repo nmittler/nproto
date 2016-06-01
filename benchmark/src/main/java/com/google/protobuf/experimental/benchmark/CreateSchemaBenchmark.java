@@ -1,9 +1,11 @@
 package com.google.protobuf.experimental.benchmark;
 
+import com.google.protobuf.experimental.descriptor.AnnotationBeanDescriptorFactory;
+import com.google.protobuf.experimental.example.HandwrittenSchemaFactory;
 import com.google.protobuf.experimental.example.PojoMessage;
 import com.google.protobuf.experimental.schema.AsmSchemaFactory;
 import com.google.protobuf.experimental.schema.GenericSchemaFactory;
-import com.google.protobuf.experimental.example.HandwrittenSchemaFactory;
+import com.google.protobuf.experimental.schema.InjectionClassLoadingStrategy;
 import com.google.protobuf.experimental.schema.SchemaFactory;
 import com.google.protobuf.experimental.util.TestUtil;
 
@@ -20,13 +22,34 @@ public class CreateSchemaBenchmark {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
     GENERIC(new GenericSchemaFactory()),
     GENERIC_NO_ANNOTATIONS(new GenericSchemaFactory(TestUtil.PojoDescriptorFactory.getInstance())),
-    ASM(new AsmSchemaFactory()) {
+    ASM_INLINE(new AsmSchemaFactory(
+            new InjectionClassLoadingStrategy(),
+            AnnotationBeanDescriptorFactory.getInstance(),
+            new BenchmarkSchemaNamingStrategy(PojoMessage.class.getName() + "InlineSchema"),
+            false,
+            false)) {
       @Override
       byte[] createSchema() {
         return ((AsmSchemaFactory) factory).createSchemaClass(PojoMessage.class);
       }
     },
-    ASM_NO_ANNOTATIONS(new AsmSchemaFactory(TestUtil.PojoDescriptorFactory.getInstance())) {
+    ASM_MINCODE(new AsmSchemaFactory(
+            new InjectionClassLoadingStrategy(),
+            AnnotationBeanDescriptorFactory.getInstance(),
+            new BenchmarkSchemaNamingStrategy(PojoMessage.class.getName() + "MinCodeSchema"),
+            true,
+            false)) {
+      @Override
+      byte[] createSchema() {
+        return ((AsmSchemaFactory) factory).createSchemaClass(PojoMessage.class);
+      }
+    },
+    ASM_NOANNOTATIONS(new AsmSchemaFactory(
+            new InjectionClassLoadingStrategy(),
+            TestUtil.PojoDescriptorFactory.getInstance(),
+            new BenchmarkSchemaNamingStrategy(PojoMessage.class.getName() + "NoAnnotationsSchema"),
+            false,
+            false)) {
       @Override
       byte[] createSchema() {
         return ((AsmSchemaFactory) factory).createSchemaClass(PojoMessage.class);

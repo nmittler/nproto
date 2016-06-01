@@ -63,11 +63,17 @@ public final class PojoMessage {
   @ProtoField(number = 15, type = FieldType.MESSAGE)
   public Object messageField;
 
+  /**
+   * Test a package-private list.
+   */
   @ProtoField(number = 16, type = FieldType.ENUM)
-  public List<MyEnum> enumListField;
+  List<MyEnum> enumListField;
 
+  /**
+   * Test a private list.
+   */
   @ProtoField(number = 17, type = FieldType.BOOL)
-  public List<Boolean> boolListField;
+  private List<Boolean> boolListField;
 
   @ProtoField(number = 18, type = FieldType.UINT32)
   public List<Integer> uint32ListField;

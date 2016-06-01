@@ -304,6 +304,10 @@ public final class TestUtil {
             value = msg.isBoolField();
           } else if (info.field.equals(PojoMessage.class.getDeclaredField("enumField"))) {
             value = msg.getEnumField();
+          } else if (info.field.equals(PojoMessage.class.getDeclaredField("boolListField"))) {
+            value = msg.getBoolListField();
+          } else if (info.field.equals(PojoMessage.class.getDeclaredField("enumListField"))) {
+            value = msg.getEnumListField();
           } else {
             throw new RuntimeException("Unable to find accessor for field " + info.field.getName());
           }

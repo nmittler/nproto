@@ -507,6 +507,13 @@ public final class SchemaUtil {
     getOrCreateList(message, offset).add(reader.readMessage());
   }
 
+  public static <L> List<L> getOrCreateList(List<L> list) {
+    if (list == null) {
+      list = new ArrayList<L>();
+    }
+    return list;
+  }
+
   private static <L> List<L> getOrCreateList(Object message, long offset) {
     @SuppressWarnings("unchecked")
     List<L> list = (List<L>) UnsafeUtil.getObject(message, offset);

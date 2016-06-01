@@ -8,6 +8,7 @@ import com.google.protobuf.experimental.schema.Schema;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 final class HandwrittenSchema implements Schema<PojoMessage> {
   @Override
@@ -30,8 +31,9 @@ final class HandwrittenSchema implements Schema<PojoMessage> {
     if (message.enumListField != null && !message.enumListField.isEmpty()) {
       writer.writeEnumList(16, message.enumListField);
     }
-    if (message.boolListField != null && !message.boolListField.isEmpty()) {
-      writer.writeBoolList(17, message.boolListField);
+    List<Boolean> boolList = message.getBoolListField();
+    if (boolList != null && !boolList.isEmpty()) {
+      writer.writeBoolList(17, boolList);
     }
     if (message.uint32ListField != null && !message.uint32ListField.isEmpty()) {
       writer.writeUInt32List(18, message.uint32ListField);
@@ -135,10 +137,12 @@ final class HandwrittenSchema implements Schema<PojoMessage> {
           message.enumListField.add(PojoMessage.MyEnum.class.cast(reader.readEnum()));
           break;
         case 17:
-          if (message.boolListField == null) {
-            message.boolListField = new ArrayList<Boolean>();
+          List<Boolean> boolList = message.getBoolListField();
+          if (boolList == null) {
+            boolList = new ArrayList<Boolean>();
+            message.setBoolListField(boolList);
           }
-          message.boolListField.add(reader.readBool());
+          boolList.add(reader.readBool());
           break;
         case 18:
           if (message.uint32ListField == null) {

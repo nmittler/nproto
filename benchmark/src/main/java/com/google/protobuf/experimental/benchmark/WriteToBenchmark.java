@@ -1,11 +1,13 @@
 package com.google.protobuf.experimental.benchmark;
 
 import com.google.protobuf.experimental.ByteString;
+import com.google.protobuf.experimental.descriptor.AnnotationBeanDescriptorFactory;
 import com.google.protobuf.experimental.example.PojoMessage;
 import com.google.protobuf.experimental.Writer;
 import com.google.protobuf.experimental.schema.AsmSchemaFactory;
 import com.google.protobuf.experimental.schema.GenericSchemaFactory;
 import com.google.protobuf.experimental.example.HandwrittenSchemaFactory;
+import com.google.protobuf.experimental.schema.InjectionClassLoadingStrategy;
 import com.google.protobuf.experimental.schema.Schema;
 import com.google.protobuf.experimental.schema.SchemaFactory;
 import com.google.protobuf.experimental.util.TestUtil;
@@ -25,7 +27,30 @@ public class WriteToBenchmark {
   public enum SchemaType {
     HANDWRITTEN(new HandwrittenSchemaFactory()),
     GENERIC(new GenericSchemaFactory()),
-    ASM(new AsmSchemaFactory());
+    ASM_INLINE_SAFE(new AsmSchemaFactory(
+            new InjectionClassLoadingStrategy(),
+            AnnotationBeanDescriptorFactory.getInstance(),
+            new BenchmarkSchemaNamingStrategy(PojoMessage.class.getName() + "InlineSafeSchema"),
+            false,
+            false)),
+    ASM_INLINE_UNSAFE(new AsmSchemaFactory(
+            new InjectionClassLoadingStrategy(),
+            AnnotationBeanDescriptorFactory.getInstance(),
+            new BenchmarkSchemaNamingStrategy(PojoMessage.class.getName() + "InlineUnsafeSchema"),
+            false,
+            true)),
+    ASM_MINCODE_SAFE(new AsmSchemaFactory(
+            new InjectionClassLoadingStrategy(),
+            AnnotationBeanDescriptorFactory.getInstance(),
+            new BenchmarkSchemaNamingStrategy(PojoMessage.class.getName() + "MinCodeSafeSchema"),
+            true,
+            false)),
+    ASM_MINCODE_UNSAFE(new AsmSchemaFactory(
+            new InjectionClassLoadingStrategy(),
+            AnnotationBeanDescriptorFactory.getInstance(),
+            new BenchmarkSchemaNamingStrategy(PojoMessage.class.getName() + "MinCodeUnsafeSchema"),
+            true,
+            true));
 
     SchemaType(SchemaFactory factory) {
       this.factory = factory;
