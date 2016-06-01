@@ -3,9 +3,9 @@ package com.google.protobuf.experimental.benchmark;
 import com.google.protobuf.experimental.descriptor.AnnotationBeanDescriptorFactory;
 import com.google.protobuf.experimental.example.HandwrittenSchemaFactory;
 import com.google.protobuf.experimental.example.PojoMessage;
-import com.google.protobuf.experimental.schema.AsmSchemaFactory;
+import com.google.protobuf.experimental.schema.asm.AsmSchemaFactory;
 import com.google.protobuf.experimental.schema.GenericSchemaFactory;
-import com.google.protobuf.experimental.schema.InjectionClassLoadingStrategy;
+import com.google.protobuf.experimental.schema.asm.InjectionClassLoadingStrategy;
 import com.google.protobuf.experimental.schema.SchemaFactory;
 import com.google.protobuf.experimental.util.TestUtil;
 

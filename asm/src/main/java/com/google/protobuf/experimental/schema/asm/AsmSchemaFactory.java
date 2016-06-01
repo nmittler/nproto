@@ -1,4 +1,4 @@
-package com.google.protobuf.experimental.schema;
+package com.google.protobuf.experimental.schema.asm;
 
 import static com.google.protobuf.experimental.descriptor.PropertyType.ENUM;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
@@ -50,6 +50,8 @@ import com.google.protobuf.experimental.descriptor.AnnotationBeanDescriptorFacto
 import com.google.protobuf.experimental.descriptor.BeanDescriptorFactory;
 import com.google.protobuf.experimental.descriptor.PropertyDescriptor;
 import com.google.protobuf.experimental.descriptor.PropertyType;
+import com.google.protobuf.experimental.schema.Schema;
+import com.google.protobuf.experimental.schema.SchemaFactory;
 import com.google.protobuf.experimental.util.SchemaUtil;
 import com.google.protobuf.experimental.util.UnsafeUtil;
 
@@ -58,7 +60,6 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.util.CheckClassAdapter;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;

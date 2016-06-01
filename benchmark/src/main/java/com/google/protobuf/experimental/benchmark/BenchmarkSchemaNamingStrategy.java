@@ -1,6 +1,6 @@
 package com.google.protobuf.experimental.benchmark;
 
-import com.google.protobuf.experimental.schema.SchemaNamingStrategy;
+import com.google.protobuf.experimental.schema.asm.SchemaNamingStrategy;
 
 class BenchmarkSchemaNamingStrategy implements SchemaNamingStrategy {
   private final String name;

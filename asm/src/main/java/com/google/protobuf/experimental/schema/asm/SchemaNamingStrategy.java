@@ -1,4 +1,4 @@
-package com.google.protobuf.experimental.schema;
+package com.google.protobuf.experimental.schema.asm;
 
 public interface SchemaNamingStrategy {
   /**

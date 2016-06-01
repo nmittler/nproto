@@ -1,6 +1,7 @@
-package com.google.protobuf.experimental.schema;
+package com.google.protobuf.experimental.schema.android;
 
 import com.google.protobuf.experimental.Internal;
+import com.google.protobuf.experimental.schema.asm.ClassLoadingStrategy;
 import com.google.protobuf.experimental.util.RandomString;
 
 import com.android.dx.dex.DexOptions;

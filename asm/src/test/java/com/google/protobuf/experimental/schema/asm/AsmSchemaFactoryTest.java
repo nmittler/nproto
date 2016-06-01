@@ -1,7 +1,9 @@
-package com.google.protobuf.experimental.schema;
+package com.google.protobuf.experimental.schema.asm;
 
 import com.google.protobuf.experimental.descriptor.AnnotationBeanDescriptorFactory;
 import com.google.protobuf.experimental.example.PojoMessage;
+import com.google.protobuf.experimental.schema.AbstractSchemaFactoryTest;
+import com.google.protobuf.experimental.schema.Schema;
 
 import org.junit.Before;
 import org.junit.Ignore;

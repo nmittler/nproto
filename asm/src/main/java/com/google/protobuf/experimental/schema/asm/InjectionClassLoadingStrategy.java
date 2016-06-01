@@ -1,4 +1,4 @@
-package com.google.protobuf.experimental.schema;
+package com.google.protobuf.experimental.schema.asm;
 
 import com.google.protobuf.experimental.Internal;
 
