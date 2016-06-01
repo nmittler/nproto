@@ -1,4 +1,4 @@
-package com.google.protobuf.experimental.schema.android;
+package com.google.protobuf.experimental.schema.asm.android;
 
 import com.google.protobuf.experimental.Internal;
 import com.google.protobuf.experimental.schema.asm.ClassLoadingStrategy;
