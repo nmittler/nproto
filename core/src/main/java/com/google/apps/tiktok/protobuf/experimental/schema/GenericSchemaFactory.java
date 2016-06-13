@@ -12,7 +12,7 @@ public final class GenericSchemaFactory implements SchemaFactory {
   private final MessageDescriptorFactory messageDescriptorFactory;
 
   public GenericSchemaFactory() {
-    this(AnnotationMessageDescriptorFactory.getInstance());
+    this(AnnotationMessageDescriptorFactory.getValidatingInstance());
   }
 
   public GenericSchemaFactory(MessageDescriptorFactory messageDescriptorFactory) {

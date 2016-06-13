@@ -155,7 +155,7 @@ public final class AsmSchemaFactory implements SchemaFactory {
   public AsmSchemaFactory() {
     this(
         new InjectionClassLoadingStrategy(),
-        AnnotationMessageDescriptorFactory.getInstance(),
+        AnnotationMessageDescriptorFactory.getValidatingInstance(),
         DefaultSchemaNamingStrategy.getInstance(),
         false,
         false);

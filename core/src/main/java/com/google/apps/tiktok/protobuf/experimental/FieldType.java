@@ -66,9 +66,10 @@ public enum FieldType {
     this.type = type;
     this.javaType = javaType;
     this.packed = packed;
+    list = type == List.class;
 
     Class<?> elementType = null;
-    if (type == List.class) {
+    if (list) {
       // Set the allowed type within the list.
       switch (javaType) {
         case BOOLEAN:
@@ -101,6 +102,7 @@ public enum FieldType {
   private final JavaType javaType;
   private final int id;
   private final boolean packed;
+  private final boolean list;
   private final Class<?> listElementType;
 
   /**
@@ -138,33 +140,37 @@ public enum FieldType {
    * Indicates whether this field represents a list of values.
    */
   public boolean isList() {
-    return type == List.class;
+    return list;
   }
 
   /**
    * Indicates whether or not this {@link FieldType} can be applied to the given {@link Field}.
    */
   public boolean isValidForField(Field field) {
-    if (isList()) {
-      Class<?> clazz = field.getType();
-      if (!type.isAssignableFrom(clazz)) {
-        // The field isn't a List type.
-        return false;
-      }
-      Type[] types = EMPTY_TYPES;
-      Type genericType = field.getGenericType();
-      if (genericType instanceof ParameterizedType) {
-        types = ((ParameterizedType) field.getGenericType()).getActualTypeArguments();
-      }
-      Type listParameter = getListParameter(clazz, types);
-      if (!(listParameter instanceof Class)) {
-        // It's a wildcard, we should allow anything in the list.
-        return true;
-      }
-      return listElementType.isAssignableFrom((Class<?>) listParameter);
+    if (list) {
+      return isValidForList(field);
     } else {
       return type.isAssignableFrom(field.getType());
     }
+  }
+
+  private boolean isValidForList(Field field) {
+    Class<?> clazz = field.getType();
+    if (!type.isAssignableFrom(clazz)) {
+      // The field isn't a List type.
+      return false;
+    }
+    Type[] types = EMPTY_TYPES;
+    Type genericType = field.getGenericType();
+    if (genericType instanceof ParameterizedType) {
+      types = ((ParameterizedType) field.getGenericType()).getActualTypeArguments();
+    }
+    Type listParameter = getListParameter(clazz, types);
+    if (!(listParameter instanceof Class)) {
+      // It's a wildcard, we should allow anything in the list.
+      return true;
+    }
+    return listElementType.isAssignableFrom((Class<?>) listParameter);
   }
 
   /**

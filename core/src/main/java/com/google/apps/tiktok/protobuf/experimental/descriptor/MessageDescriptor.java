@@ -17,11 +17,8 @@ public final class MessageDescriptor {
    *
    * @param fieldDescriptors the set of fields for the message.
    */
-  public MessageDescriptor(Collection<FieldDescriptor> fieldDescriptors) {
-    // Make a defensive copy and sort them in ascending order by field number.
-    List<FieldDescriptor> list = new ArrayList<FieldDescriptor>(fieldDescriptors);
-    Collections.sort(list);
-    this.fieldDescriptors = Collections.unmodifiableList(list);
+  private MessageDescriptor(ArrayList<FieldDescriptor> fieldDescriptors) {
+    this.fieldDescriptors = Collections.unmodifiableList(fieldDescriptors);
   }
 
   /**
@@ -30,5 +27,51 @@ public final class MessageDescriptor {
    */
   public List<FieldDescriptor> getFieldDescriptors() {
     return fieldDescriptors;
+  }
+
+  /**
+   * Helper method for creating a new builder for {@link MessageDescriptor}.
+   */
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  /**
+   * Helper method for creating a new builder for {@link MessageDescriptor}.
+   */
+  public static Builder newBuilder(int numFields) {
+    return new Builder(numFields);
+  }
+
+  /**
+   * A builder of {@link MessageDescriptor} instances.
+   */
+  public static final class Builder {
+    private final ArrayList<FieldDescriptor> fieldDescriptors;
+    private boolean wasBuilt;
+
+    public Builder() {
+      fieldDescriptors = new ArrayList<FieldDescriptor>();
+    }
+
+    public Builder(int numFields) {
+      fieldDescriptors = new ArrayList<FieldDescriptor>(numFields);
+    }
+
+    public void add(FieldDescriptor fieldDescriptor) {
+      if (wasBuilt) {
+        throw new IllegalStateException("Builder can only build once");
+      }
+      fieldDescriptors.add(fieldDescriptor);
+    }
+
+    public MessageDescriptor build() {
+      if (wasBuilt) {
+        throw new IllegalStateException("Builder can only build once");
+      }
+      wasBuilt = true;
+      Collections.sort(fieldDescriptors);
+      return new MessageDescriptor(fieldDescriptors);
+    }
   }
 }

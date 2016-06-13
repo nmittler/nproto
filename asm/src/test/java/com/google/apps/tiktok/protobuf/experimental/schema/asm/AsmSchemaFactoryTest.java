@@ -52,7 +52,7 @@ public class AsmSchemaFactoryTest extends AbstractSchemaFactoryTest {
     AsmSchemaFactory factory =
         new AsmSchemaFactory(
             new InjectionClassLoadingStrategy(),
-            AnnotationMessageDescriptorFactory.getInstance(),
+            AnnotationMessageDescriptorFactory.getValidatingInstance(),
             new RandomSchemaNamingStrategy(20),
             minimizeGeneratedCode,
             preferUnsafe);

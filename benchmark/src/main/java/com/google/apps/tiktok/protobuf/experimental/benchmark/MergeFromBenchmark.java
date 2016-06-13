@@ -27,28 +27,28 @@ public class MergeFromBenchmark {
     ASM_INLINE_SAFE(
         new AsmSchemaFactory(
             new InjectionClassLoadingStrategy(),
-            AnnotationMessageDescriptorFactory.getInstance(),
+            AnnotationMessageDescriptorFactory.getValidatingInstance(),
             new BenchmarkSchemaNamingStrategy(TestMessage.class.getName() + "InlineSafeSchema"),
             false,
             false)),
     ASM_INLINE_UNSAFE(
         new AsmSchemaFactory(
             new InjectionClassLoadingStrategy(),
-            AnnotationMessageDescriptorFactory.getInstance(),
+            AnnotationMessageDescriptorFactory.getValidatingInstance(),
             new BenchmarkSchemaNamingStrategy(TestMessage.class.getName() + "InlineUnsafeSchema"),
             false,
             true)),
     ASM_MINCODE_SAFE(
         new AsmSchemaFactory(
             new InjectionClassLoadingStrategy(),
-            AnnotationMessageDescriptorFactory.getInstance(),
+            AnnotationMessageDescriptorFactory.getValidatingInstance(),
             new BenchmarkSchemaNamingStrategy(TestMessage.class.getName() + "MinCodeSafeSchema"),
             true,
             false)),
     ASM_MINCODE_UNSAFE(
         new AsmSchemaFactory(
             new InjectionClassLoadingStrategy(),
-            AnnotationMessageDescriptorFactory.getInstance(),
+            AnnotationMessageDescriptorFactory.getValidatingInstance(),
             new BenchmarkSchemaNamingStrategy(TestMessage.class.getName() + "MinCodeUnsafeSchema"),
             true,
             true));

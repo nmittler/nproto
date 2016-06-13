@@ -18,7 +18,6 @@ public final class FieldDescriptor implements Comparable<FieldDescriptor> {
    * @param field the field from the protobuf message.
    * @param fieldNumber the field number for the field.
    * @param type the field type information.
-   * @throws IllegalArgumentException if the {@code type} cannot be applied to the {@code field}.
    */
   public FieldDescriptor(Field field, int fieldNumber, FieldType type) {
     if (field == null) {
@@ -26,11 +25,6 @@ public final class FieldDescriptor implements Comparable<FieldDescriptor> {
     }
     if (type == null) {
       throw new NullPointerException("type");
-    }
-    if (!type.isValidForField(field)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Field type %s cannot be applied to %s ", type.name(), field.getType().getName()));
     }
 
     this.field = field;

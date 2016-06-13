@@ -211,7 +211,7 @@ public final class TestMessageReader implements Reader {
   private static FieldValue[] fieldValuesFor(TestMessage msg) {
     List<FieldValue> fieldValues = new ArrayList<FieldValue>();
     List<FieldDescriptor> protoProperties =
-        AnnotationMessageDescriptorFactory.getInstance()
+        AnnotationMessageDescriptorFactory.getValidatingInstance()
             .descriptorFor(msg.getClass())
             .getFieldDescriptors();
     for (FieldDescriptor info : protoProperties) {
